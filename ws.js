@@ -1,6 +1,5 @@
 import {WebSocketServer} from "ws";
-import { template } from "./game/map/map.js";
-
+import {generateLevel, template} from "./game_map.js";
 
 class Player {
     constructor() {
@@ -10,17 +9,17 @@ class Player {
     }
 
     setPosition(x, y) {
-        this.position = {
+        return this.position = {
             x, y
         }
     }
 
-    setHealth() {
-        this.health = -1
+    decreaseHealth() {
+        return this.health = -1
     }
 
     setPower(power) {
-        this.power.add(power)
+        return this.power.add(power)
     }
 }
 
@@ -29,75 +28,70 @@ class Game {
         this.world = new Map();
     }
 
-    setRoom(playerName) {
+    #setRoom({name}) {
         const roomId = uuidv4()
         let player = new Player()
-        this.world.set(roomId, {[playerName]: player})
+        this.world.set(roomId, {[name]: player})
+        this.world.get(roomId)["map"] = generateLevel(template)
         return roomId
     }
 
-    setPlayer(name, roomId = "") {
+    setPlayer({name, roomId = ""}) {
         if (roomId === "") {
-            const roomId = this.setRoom()
-            const room = this.world.get(roomId)
-            room.set(name, new Player())
-            return
+            return this.#setRoom({name})
         }
-        this[roomId].set(name, new Player())
+        const room = this.world.get(roomId)
+        if (!room) return
+        room[name] = new Player()
+        return roomId
     }
 
 }
 
-const commands = new Set(['setRoom', 'setPlayer', 'setPosition', 'setHealth', 'setPower', 'setWorld'])
 
 export const
     server = (port) => {
         const ws = new WebSocketServer({port});
         const game = new Game();
 
+        const cmd = (mehtod, args) => {
+            switch (mehtod) {
+                case 'setPosition' : {
+                    const {roomId, name, position} = args
+                    const {x, y} = position
+                    return game.world.get(roomId)[name].setPosition(x, y)
+                }
+                case 'setPlayer' : {
+                    return game[mehtod](args)
+                }
+                case 'decreaseHealth': {
+                    const {roomId, name} = args
+                    return game.world.get(roomId)[name].decreaseHealth()
+                }
+                case 'setPower':
+                    const {roomId, name, power} = args
+                    return game.world.get(roomId)[name].setPower(power)
+            }
+        }
+
         ws.on('connection', (connection, req) => {
             // const ip = req.socket.remoteAddress;
 
-            const id = uuidv4();
-            const metadata = {id};
-
             connection.on('message', async (message) => {
-                const m = JSON.parse(message);
-                console.log("Message received from client : ", m );
-                if (m === 'setWorld'){
-                    let obj = { 
-                        action : "setWorld",
-                        payload: template
+                const obj = JSON.parse(message);
+                const {method, args = []} = obj;
 
-                    }
-                    connection.send(JSON.stringify(obj));
-                }
-                // const metadata = clients.get(ws);
-                //
-                // m.sender = metadata.id;
-                //
-                // [...clients.keys()].forEach((client) => {
-                //     client.send(JSON.stringify(m));
-                // });
-
-
-                const command = commands.has(Object.keys(m)[0])
-                if (!command) return connection.send('"Not found"', {binary: false});
-                
-                let roomId
-                switch (Object.keys(m)[0]) {
-                    case "setRoom":
-                        roomId = game.setRoom(m[Object.keys(m)[0]]);
-                        break;
-                }
+                const fromCmd = cmd(method, args)
+                console.log("ANSWER", fromCmd)
 
                 const response = game.world
-                const obj = Object.fromEntries(response);
-                const str = JSON.stringify(obj)
-                connection.send(str, {binary: false});
+                const entries = Object.fromEntries(response);
+                const str = JSON.stringify(entries)
 
+                connection.send(str, {binary: false});
             });
-        });
+        })
+
 
         // ws.on('close', () => {
         //     clients.delete(ws)

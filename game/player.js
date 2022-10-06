@@ -12,4 +12,9 @@ export class Player{
         this.direction = DIRECTION.LEFT
         this.speed = 1;
     }
+
+
+    setPostion(){
+        
+    }
 }

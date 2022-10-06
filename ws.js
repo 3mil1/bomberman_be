@@ -1,4 +1,5 @@
 import {WebSocketServer} from "ws";
+import { template } from "./game/map/map.js";
 
 
 class Player {
@@ -43,11 +44,11 @@ class Game {
             return
         }
         this[roomId].set(name, new Player())
-
     }
+
 }
 
-const commands = new Set(['setRoom', 'setPlayer', 'setPosition', 'setHealth', 'setPower'])
+const commands = new Set(['setRoom', 'setPlayer', 'setPosition', 'setHealth', 'setPower', 'setWorld'])
 
 export const
     server = (port) => {
@@ -55,13 +56,22 @@ export const
         const game = new Game();
 
         ws.on('connection', (connection, req) => {
-            const ip = req.socket.remoteAddress;
+            // const ip = req.socket.remoteAddress;
 
             const id = uuidv4();
             const metadata = {id};
 
             connection.on('message', async (message) => {
                 const m = JSON.parse(message);
+                console.log("Message received from client : ", m );
+                if (m === 'setWorld'){
+                    let obj = { 
+                        action : "setWorld",
+                        payload: template
+
+                    }
+                    connection.send(JSON.stringify(obj));
+                }
                 // const metadata = clients.get(ws);
                 //
                 // m.sender = metadata.id;
@@ -73,7 +83,7 @@ export const
 
                 const command = commands.has(Object.keys(m)[0])
                 if (!command) return connection.send('"Not found"', {binary: false});
-
+                
                 let roomId
                 switch (Object.keys(m)[0]) {
                     case "setRoom":

@@ -44,7 +44,6 @@ export function generateLevel(template) {
             }
         }
     }
-    addPowerUps(template);
     return template;
 }
 

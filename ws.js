@@ -1,5 +1,5 @@
 import {WebSocketServer} from "ws";
-import {generateLevel, playerPositions, template} from "./game_map.js";
+import {addPowerUps, generateLevel, playerPositions, template} from "./game_map.js";
 
 const matchPlayerIPWithRoomId = {}
 
@@ -83,6 +83,7 @@ class Game {
             return {roomId, name}
         }
         const room = this.server.get(roomId)
+         addPowerUps(room["map"]);
         if (!room) return
         room["numberOfPlayers"] += 1
         room[name] = new Player(playerPositions[room["numberOfPlayers"]])

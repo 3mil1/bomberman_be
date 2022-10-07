@@ -145,16 +145,18 @@ export const
 
         ws.on('connection', (connection, req) => {
             const playerIP = req.socket.remoteAddress;
+            console.log(playerIP);
 
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
+                console.log(obj);
                 const {method, args = []} = obj;
 
                 const fromCmd = commands(method, args, playerIP)
 
                 if (method === 'setPlayer') {
                     const {roomId, name} = fromCmd
-                    connection.send(JSON.stringify({roomId, name}), {binary: false});
+                    connection.send(JSON.stringify({type: "roomID", roomId, name}), {binary: false});
                 }
 
                 const {roomId} = args

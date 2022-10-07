@@ -35,3 +35,15 @@ Application was created for educational purposes
   }
 }
 ```
+
+### setPosition
+
+```json
+{
+  "method": "setPosition",
+  "args": {
+    "x": 11,
+    "y": 11
+  }
+}
+```

@@ -115,8 +115,8 @@ export const
         const commands = (method, args, playerIP) => {
             switch (method) {
                 case 'setPosition' : {
-                    const {roomId, name, position} = args
-                    const {x, y} = position
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    const {x, y} = args
                     return game.server.get(roomId)[name].setPosition(x, y)
                 }
                 case 'setPlayer' : {
@@ -125,20 +125,21 @@ export const
                     return {roomId, name}
                 }
                 case 'decreaseHealth': {
-                    const {roomId, name} = args
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     return game.server.get(roomId)[name].decreaseHealth()
                 }
                 case 'setPower': {
-                    const {roomId, name, power} = args
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    const {power} = args
                     return game.server.get(roomId)[name].setPower(power)
-                }
-                case 'startGame': {
-                    const {roomId} = args
-                    return game.startGame(roomId)
                 }
                 case "setBomb": {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     return game.setBomb(name, roomId)
+                }
+                case 'startGame': {
+                    const {roomId} = args
+                    return game.startGame(roomId)
                 }
             }
         }

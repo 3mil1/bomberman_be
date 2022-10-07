@@ -151,7 +151,6 @@ export const
                     connection.send(JSON.stringify({roomId: fromCmd, name: args.name}), {binary: false});
                 }
 
-
                 const {roomId} = args
                 if (roomId) {
                     const gameClass = game.server

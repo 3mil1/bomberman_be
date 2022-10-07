@@ -89,11 +89,12 @@ class Game {
         return {roomId, name}
     }
 
-    setBomb({name, roomId}) {
+    setBomb(name, roomId) {
         const room = this.server.get(roomId)
         for (let y = 0; y < room["map"].length; y++) {
-            for (let x = 0; x < x.length; x++) {
-                if (room[name].position.x === x && roomId[name].position.y === x) {
+            console.log(room["map"][y])
+            for (let x = 0; x < room["map"][y].length; x++) {
+                if (room[name].position.x === x && room[name].position.y === y) {
                     room["map"][y][x] = "b"
                 }
             }
@@ -136,9 +137,9 @@ export const
                     return game.startGame(roomId)
                 }
                 case "setBomb": {
-
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    return game.setBomb(name, roomId)
                 }
-
             }
         }
 
@@ -179,7 +180,7 @@ export const
                 const ip = client["_socket"]["_peername"].address
                 const roomId = matchPlayerIPWithRoomId[ip].roomId
                 if (!roomId) return
-                client.send(JSON.stringify(obj[matchPlayerIPWithRoomId[ip]]), {binary: false});
+                client.send(JSON.stringify(obj[roomId]), {binary: false});
             });
         };
 
@@ -197,3 +198,4 @@ function uuidv4() {
         return v.toString(16);
     });
 }
+

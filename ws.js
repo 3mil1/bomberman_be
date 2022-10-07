@@ -151,12 +151,13 @@ export const
                     connection.send(JSON.stringify({roomId: fromCmd, name: args.name}), {binary: false});
                 }
 
-                const gameClass = game.server
-                const gameObj = Object.fromEntries(gameClass);
-
 
                 const {roomId} = args
-                if (roomId && gameObj[roomId].started) animate(gameObj);
+                if (roomId) {
+                    const gameClass = game.server
+                    const gameObj = Object.fromEntries(gameClass);
+                    if (gameObj[roomId].started) animate(gameObj);
+                }
             });
         })
 
@@ -178,7 +179,6 @@ export const
                 }
             });
         };
-
 
         ws.on('close', () => {
             // todo

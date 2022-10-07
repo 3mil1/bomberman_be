@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  backend:
+    build: .
+    container_name: bomberman_be
+    command: node main.js
+    ports:
+      - "8008:8008"
+    restart: unless-stopped

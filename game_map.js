@@ -1,6 +1,7 @@
 const grid = 64;
 const numRows = 13;
 const numCols = 15;
+
 const ELEMENTS = {
     WALL: 'wall',
     DESTROYABLE_WALL: 'destroyable-wall',
@@ -27,7 +28,8 @@ export function generateLevel(template) {
     return template;
 }
 
-export const template = [
+export const template =
+    [
     ['▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉'],
     ['▉', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', '▉'],
     ['▉', 'x', '▉', '.', '▉', '.', '▉', '.', '▉', '.', '▉', '.', '▉', 'x', '▉'],

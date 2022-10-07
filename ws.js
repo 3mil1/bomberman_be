@@ -66,19 +66,23 @@ class Game {
 
     #setRoom({name}) {
         const roomId = uuidv4()
-        let player = new Player()
-        this.server.set(roomId, {[name]: player})
+        this.server.set(roomId, {[name]: {}})
         this.server.get(roomId)["map"] = generateLevel(template)
+        this.server.get(roomId)["started"] = false
         return roomId
     }
 
     setPlayer({name, roomId = ""}) {
+        const player = new Player()
         if (roomId === "") {
-            return this.#setRoom({name})
+            const roomId = this.#setRoom({name})
+            const room = this.server.get(roomId)
+            room[name] = player
+            return roomId
         }
         const room = this.server.get(roomId)
         if (!room) return
-        room[name] = new Player()
+        room[name] = player
         return roomId
     }
 
@@ -94,16 +98,19 @@ class Game {
     }
 
     startGame(roomId) {
-        // todo
+        return this.server.get(roomId).started = true
     }
 }
 
+const matchPlayerIPWithRoomId = {}
+
 export const
     server = (port) => {
+        const fps = 1;
         const ws = new WebSocketServer({port});
         const game = new Game();
 
-        const commands = (method, args) => {
+        const commands = (method, args, playerIP) => {
             switch (method) {
                 case 'setPosition' : {
                     const {roomId, name, position} = args
@@ -111,35 +118,67 @@ export const
                     return game.server.get(roomId)[name].setPosition(x, y)
                 }
                 case 'setPlayer' : {
-                    return game[method](args)
+                    const roomId = game.setPlayer(args)
+                    matchPlayerIPWithRoomId[playerIP] = roomId
+                    return roomId
                 }
                 case 'decreaseHealth': {
                     const {roomId, name} = args
                     return game.server.get(roomId)[name].decreaseHealth()
                 }
-                case 'setPower':
+                case 'setPower': {
                     const {roomId, name, power} = args
                     return game.server.get(roomId)[name].setPower(power)
+                }
+                case 'startGame': {
+                    const {roomId} = args
+                    return game.startGame(roomId)
+                }
+
             }
         }
 
         ws.on('connection', (connection, req) => {
-            const ip = req.socket.remoteAddress;
+            const playerIP = req.socket.remoteAddress;
 
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
 
-                const fromCmd = commands(method, args)
-                console.log("ANSWER", fromCmd)
+                const fromCmd = commands(method, args, playerIP)
 
-                const response = game.server
-                const entries = Object.fromEntries(response);
-                const str = JSON.stringify(entries)
+                if (method === 'setPlayer') {
+                    connection.send(JSON.stringify({roomId: fromCmd, name: args.name}), {binary: false});
+                }
 
-                connection.send(str, {binary: false});
+                const gameClass = game.server
+                const gameObj = Object.fromEntries(gameClass);
+
+
+                const {roomId} = args
+                if (roomId && gameObj[roomId].started) animate(gameObj);
             });
         })
+
+
+        function animate(obj) {
+            ws.broadcast(obj);
+
+            setTimeout(() => {
+                animate(obj)
+            }, 1000 / fps);
+        }
+
+        ws.broadcast = function broadcast(obj) {
+            ws.clients.forEach(function each(client) {
+                const ip = client["_socket"]["_peername"].address
+                const roomId = matchPlayerIPWithRoomId[ip]
+                if (matchPlayerIPWithRoomId[ip]) {
+                    client.send(JSON.stringify(obj[matchPlayerIPWithRoomId[ip]]), {binary: false});
+                }
+            });
+        };
+
 
         ws.on('close', () => {
             // todo

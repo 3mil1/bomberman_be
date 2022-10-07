@@ -1,5 +1,5 @@
 import {WebSocketServer} from "ws";
-import {generateLevel, template} from "./game_map.js";
+import {generateLevel, playerPositions, template} from "./game_map.js";
 
 const Direction = {
     Up: 'Up',
@@ -19,8 +19,8 @@ class Bomb {
 }
 
 class Player {
-    constructor() {
-        this.position = {x: 0, y: 0, speedX: 0, speedY: 0};
+    constructor({x, y}) {
+        this.position = {x: x, y: y, speedX: 0, speedY: 0};
         this.speed = 1;
         this.health = 3;
         this.power = new Set();
@@ -73,24 +73,25 @@ class Game {
     }
 
     setPlayer({name, roomId = ""}) {
-        const player = new Player()
         if (roomId === "") {
             const roomId = this.#setRoom({name})
             const room = this.server.get(roomId)
-            room[name] = player
+            room["numberOfPlayers"] = 1
+            room[name] = new Player(playerPositions["1"])
             return roomId
         }
         const room = this.server.get(roomId)
         if (!room) return
-        room[name] = player
+        room["numberOfPlayers"] += 1
+        room[name] = new Player(playerPositions[room["numberOfPlayers"]])
         return roomId
     }
 
     setBomb({name, roomId}) {
         const room = this.server.get(roomId)
-        for (let x = 0; x < room["map"].length; x++) {
-            for (let y = 0; y < x.length; y++) {
-                if (room[name].position.x === x && roomId[name].position.y === y) {
+        for (let y = 0; y < room["map"].length; y++) {
+            for (let x = 0; x < x.length; x++) {
+                if (room[name].position.x === x && roomId[name].position.y === x) {
                     // todo
                 }
             }

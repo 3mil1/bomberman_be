@@ -1,6 +1,8 @@
 import {WebSocketServer} from "ws";
 import {generateLevel, playerPositions, template} from "./game_map.js";
 
+const matchPlayerIPWithRoomId = {}
+
 const Direction = {
     Up: 'Up',
     Down: 'Down',
@@ -78,13 +80,13 @@ class Game {
             const room = this.server.get(roomId)
             room["numberOfPlayers"] = 1
             room[name] = new Player(playerPositions["1"])
-            return roomId
+            return {roomId, name}
         }
         const room = this.server.get(roomId)
         if (!room) return
         room["numberOfPlayers"] += 1
         room[name] = new Player(playerPositions[room["numberOfPlayers"]])
-        return roomId
+        return {roomId, name}
     }
 
     setBomb({name, roomId}) {
@@ -92,7 +94,7 @@ class Game {
         for (let y = 0; y < room["map"].length; y++) {
             for (let x = 0; x < x.length; x++) {
                 if (room[name].position.x === x && roomId[name].position.y === x) {
-                    // todo
+                    room["map"][y][x] = "b"
                 }
             }
         }
@@ -102,8 +104,6 @@ class Game {
         return this.server.get(roomId).started = true
     }
 }
-
-const matchPlayerIPWithRoomId = {}
 
 export const
     server = (port) => {
@@ -119,9 +119,9 @@ export const
                     return game.server.get(roomId)[name].setPosition(x, y)
                 }
                 case 'setPlayer' : {
-                    const roomId = game.setPlayer(args)
-                    matchPlayerIPWithRoomId[playerIP] = roomId
-                    return roomId
+                    const {roomId, name} = game.setPlayer(args)
+                    matchPlayerIPWithRoomId[playerIP] = {roomId, name}
+                    return {roomId, name}
                 }
                 case 'decreaseHealth': {
                     const {roomId, name} = args
@@ -134,6 +134,9 @@ export const
                 case 'startGame': {
                     const {roomId} = args
                     return game.startGame(roomId)
+                }
+                case "setBomb": {
+
                 }
 
             }
@@ -149,7 +152,8 @@ export const
                 const fromCmd = commands(method, args, playerIP)
 
                 if (method === 'setPlayer') {
-                    connection.send(JSON.stringify({roomId: fromCmd, name: args.name}), {binary: false});
+                    const {roomId, name} = fromCmd
+                    connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
 
                 const {roomId} = args
@@ -173,10 +177,9 @@ export const
         ws.broadcast = function broadcast(obj) {
             ws.clients.forEach(function each(client) {
                 const ip = client["_socket"]["_peername"].address
-                const roomId = matchPlayerIPWithRoomId[ip]
-                if (matchPlayerIPWithRoomId[ip]) {
-                    client.send(JSON.stringify(obj[matchPlayerIPWithRoomId[ip]]), {binary: false});
-                }
+                const roomId = matchPlayerIPWithRoomId[ip].roomId
+                if (!roomId) return
+                client.send(JSON.stringify(obj[matchPlayerIPWithRoomId[ip]]), {binary: false});
             });
         };
 

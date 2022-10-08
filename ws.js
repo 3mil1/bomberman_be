@@ -1,11 +1,39 @@
 import {WebSocketServer} from "ws";
-import {generateLevel, template} from "./game_map.js";
+import {generateLevel, playerPositions, template} from "./game_map.js";
+
+const matchPlayerIPWithRoomId = {}
+
+const Direction = {
+    Up: 'Up',
+    Down: 'Down',
+    Left: 'Left',
+    Right: 'Right'
+}
+
+class Bomb {
+    constructor({x, y}) {
+        this.bomb = {
+            x,
+            y,
+            beforeExplosion: 5
+        }
+    }
+}
 
 class Player {
-    constructor() {
-        this.position = {x: 0, y: 0}
-        this.health = 3
-        this.power = new Set()
+    constructor({x, y}) {
+        this.position = {x: x, y: y, speedX: 0, speedY: 0};
+        this.speed = 1;
+        this.health = 3;
+        this.power = new Set();
+        this.bombCount = 1;
+        this.spriteDir = Direction.Down
+        this.flame = 0;
+    }
+
+    #speedUp() {
+        this.position.speedX *= 1.10
+        this.position.speedY *= 1.10
     }
 
     setPosition(x, y) {
@@ -19,93 +47,165 @@ class Player {
     }
 
     setPower(power) {
-        return this.power.add(power)
+        switch (power) {
+            case "speedUp": {
+                return this.#speedUp();
+            }
+            case "bombIncrease": {
+                return this.bombCount += 1;
+            }
+            case "flameIncrease": {
+                return this.flame += 1;
+            }
+        }
     }
 }
 
 class Game {
     constructor() {
-        this.world = new Map();
+        this.server = new Map();
     }
 
     #setRoom({name}) {
         const roomId = uuidv4()
-        let player = new Player()
-        this.world.set(roomId, {[name]: player})
-        this.world.get(roomId)["map"] = generateLevel(template)
+        this.server.set(roomId, {[name]: {}})
+        this.server.get(roomId)["map"] = generateLevel(template)
+        this.server.get(roomId)["started"] = false
         return roomId
     }
 
     setPlayer({name, roomId = ""}) {
         if (roomId === "") {
-            return this.#setRoom({name})
+            const roomId = this.#setRoom({name})
+            const room = this.server.get(roomId)
+            room["numberOfPlayers"] = 1
+            room[name] = new Player(playerPositions["1"])
+            return {roomId, name}
         }
-        const room = this.world.get(roomId)
+        const room = this.server.get(roomId)
         if (!room) return
-        room[name] = new Player()
-        return roomId
+        room["numberOfPlayers"] += 1
+        room[name] = new Player(playerPositions[room["numberOfPlayers"]])
+        return {roomId, name}
     }
 
-}
+    setBomb(name, roomId) {
+        const room = this.server.get(roomId)
+        for (let y = 0; y < room["map"].length; y++) {
+            console.log(room["map"][y])
+            for (let x = 0; x < room["map"][y].length; x++) {
+                if (room[name].position.x === x && room[name].position.y === y) {
+                    room["map"][y][x] = "b"
+                }
+            }
+        }
+    }
+<<<<<<< HEAD
 
+}
+=======
+>>>>>>> main
+
+    startGame(roomId) {
+        return this.server.get(roomId).started = true
+    }
+}
 
 export const
     server = (port) => {
+        const fps = 1;
         const ws = new WebSocketServer({port});
         const game = new Game();
 
-        const cmd = (mehtod, args) => {
-            switch (mehtod) {
+        const commands = (method, args, playerIP) => {
+            switch (method) {
                 case 'setPosition' : {
-                    const {roomId, name, position} = args
-                    const {x, y} = position
-                    return game.world.get(roomId)[name].setPosition(x, y)
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    const {x, y} = args
+                    return game.server.get(roomId)[name].setPosition(x, y)
                 }
                 case 'setPlayer' : {
-                    return game[mehtod](args)
+                    const {roomId, name} = game.setPlayer(args)
+                    matchPlayerIPWithRoomId[playerIP] = {roomId, name}
+                    return {roomId, name}
                 }
                 case 'decreaseHealth': {
-                    const {roomId, name} = args
-                    return game.world.get(roomId)[name].decreaseHealth()
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    return game.server.get(roomId)[name].decreaseHealth()
                 }
-                case 'setPower':
-                    const {roomId, name, power} = args
-                    return game.world.get(roomId)[name].setPower(power)
+                case 'setPower': {
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    const {power} = args
+                    return game.server.get(roomId)[name].setPower(power)
+                }
+                case "setBomb": {
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    return game.setBomb(name, roomId)
+                }
+                case 'startGame': {
+                    const {roomId} = args
+                    return game.startGame(roomId)
+                }
             }
         }
 
         ws.on('connection', (connection, req) => {
+<<<<<<< HEAD
             // const ip = req.socket.remoteAddress;
+=======
+            const playerIP = req.socket.remoteAddress;
+>>>>>>> main
 
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
 
-                const fromCmd = cmd(method, args)
-                console.log("ANSWER", fromCmd)
+                const fromCmd = commands(method, args, playerIP)
 
-                const response = game.world
-                const entries = Object.fromEntries(response);
-                const str = JSON.stringify(entries)
+                if (method === 'setPlayer') {
+                    const {roomId, name} = fromCmd
+                    connection.send(JSON.stringify({roomId, name}), {binary: false});
+                }
 
-                connection.send(str, {binary: false});
+                const {roomId} = args
+                if (roomId) {
+                    const gameClass = game.server
+                    const gameObj = Object.fromEntries(gameClass);
+                    if (gameObj[roomId].started) animate(gameObj);
+                }
             });
         })
 
 
-        // ws.on('close', () => {
-        //     clients.delete(ws)
-        // })
+        function animate(obj) {
+            ws.broadcast(obj);
+
+            setTimeout(() => {
+                animate(obj)
+            }, 1000 / fps);
+        }
+
+        ws.broadcast = function broadcast(obj) {
+            ws.clients.forEach(function each(client) {
+                const ip = client["_socket"]["_peername"].address
+                const roomId = matchPlayerIPWithRoomId[ip].roomId
+                if (!roomId) return
+                client.send(JSON.stringify(obj[roomId]), {binary: false});
+            });
+        };
+
+        ws.on('close', () => {
+            // todo
+        })
 
         console.log(`API on port ${port}`);
     };
 
 
-function
-
-uuidv4() {
+function uuidv4() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         let r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
 }
+

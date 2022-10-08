@@ -1,6 +1,7 @@
 const grid = 64;
 const numRows = 13;
 const numCols = 15;
+
 const ELEMENTS = {
     WALL: 'wall',
     DESTROYABLE_WALL: 'destroyable-wall',
@@ -42,3 +43,10 @@ export const template = [
     ['▉', 'x', 'x', '.', '.', '.', '.', '.', '.', '.', '.', '.', 'x', 'x', '▉'],
     ['▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉', '▉']
 ];
+
+export const playerPositions = {
+    1: {x: 1, y: 1},
+    2: {x: 13, y: 11},
+    3: {x: 13, y: 1},
+    4: {x: 1, y: 11},
+}

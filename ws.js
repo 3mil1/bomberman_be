@@ -22,8 +22,8 @@ class Bomb {
 
 class Player {
     constructor({x, y}) {
-        this.position = {x: x, y: y, speedX: 0, speedY: 0};
-        this.speed = 1;
+        this.position = {x: x, y: y};
+        this.speed = 10;
         this.health = 3;
         this.power = new Set();
         this.bombCount = 1;
@@ -106,7 +106,7 @@ class Game {
     }
 }
 
-export const
+export const 
     server = (port) => {
         const fps = 1;
         const ws = new WebSocketServer({port});
@@ -122,6 +122,12 @@ export const
                 case 'setPlayer' : {
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
+
+                    //set Initial player position
+                    const count = game.server.get(roomId).numberOfPlayers;
+                    const obj = playerPositions[count];
+                    const cube = 50
+                    game.server.get(roomId)[name].setPosition(obj.x * cube, obj.y * cube);
                     return {roomId, name}
                 }
                 case 'decreaseHealth': {

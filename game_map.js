@@ -2,20 +2,12 @@ const grid = 64;
 const numRows = 13;
 const numCols = 15;
 
-const ELEMENTS = {
-    WALL: 'wall',
-    DESTROYABLE_WALL: 'destroyable-wall',
-    EMPTY_CELL: 'empty-cell',
-    FIELD: 'field',
-}
-
 const types = {
     wall: '▉',
     destroyableWall: 1,
     emptyCell: 'x',
     blank: '.',
 }
-
 
 export function generateLevel(template) {
     for (let row = 0; row < numRows; row++) {

@@ -3,21 +3,29 @@ import {generateLevel, playerPositions, template} from "./game_map.js";
 
 const matchPlayerIPWithRoomId = {}
 
+const trackBombs = () => {
+    const trackedBombs = {}
+
+    return {
+        setCallback: (callback) => {
+            return {
+                placeBomb: (x, y, timer, roomId) => {
+                    trackedBombs[`${x}:${y}`] = "someValue"
+                    setTimeout(() => {
+                        callback(x, y, roomId)
+                    }, timer);
+                }
+            }
+        }
+    }
+
+}
+
 const Direction = {
     Up: 'Up',
     Down: 'Down',
     Left: 'Left',
     Right: 'Right'
-}
-
-class Bomb {
-    constructor({x, y}) {
-        this.bomb = {
-            x,
-            y,
-            beforeExplosion: 5
-        }
-    }
 }
 
 class Player {
@@ -92,13 +100,18 @@ class Game {
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
         for (let y = 0; y < room["map"].length; y++) {
-            console.log(room["map"][y])
             for (let x = 0; x < room["map"][y].length; x++) {
                 if (room[name].position.x === x && room[name].position.y === y) {
                     room["map"][y][x] = "b"
+                    return {x, y, "timer": 5000}
                 }
             }
         }
+    }
+
+    detonateBomb(x, y, roomId) {
+        const room = this.server.get(roomId)
+        room["map"][y][x] = 'd'
     }
 
     startGame(roomId) {
@@ -111,6 +124,8 @@ export const
         const fps = 1;
         const ws = new WebSocketServer({port});
         const game = new Game();
+        let trackedBombs = trackBombs()
+        let startTrackingBomb
 
         const commands = (method, args, playerIP) => {
             switch (method) {
@@ -135,7 +150,9 @@ export const
                 }
                 case "setBomb": {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    return game.setBomb(name, roomId)
+                    const {x, y, timer} = game.setBomb(name, roomId)
+                    startTrackingBomb.placeBomb(x, y, timer, roomId)
+                    return {x, y}
                 }
                 case 'startGame': {
                     const {roomId} = args
@@ -167,14 +184,15 @@ export const
             });
         })
 
-
         function animate(obj) {
             ws.broadcast(obj);
 
             setTimeout(() => {
+                startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game))
                 animate(obj)
             }, 1000 / fps);
         }
+
 
         ws.broadcast = function broadcast(obj) {
             ws.clients.forEach(function each(client) {

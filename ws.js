@@ -100,6 +100,11 @@ class Game {
             }
         }
     }
+<<<<<<< HEAD
+
+}
+=======
+>>>>>>> main
 
     startGame(roomId) {
         return this.server.get(roomId).started = true
@@ -151,7 +156,11 @@ export const
         }
 
         ws.on('connection', (connection, req) => {
+<<<<<<< HEAD
+            // const ip = req.socket.remoteAddress;
+=======
             const playerIP = req.socket.remoteAddress;
+>>>>>>> main
 
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);

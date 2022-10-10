@@ -81,7 +81,6 @@ class Game {
         this.server.get(roomId)["started"] = false
         this.server.get(roomId)["numberOfPlayers"] = 0
         this.server.get(roomId)["messages"] = [];
-        //добавить поле игрок-соединение
         return roomId
     }
 
@@ -93,6 +92,7 @@ class Game {
         if (!room) return
         addPowerUps(room["map"]);
         room["numberOfPlayers"] += 1
+        //добавить высчитывание позиции по осям x y
         room[name] = new Player(playerPositions[room["numberOfPlayers"]])
         return {roomId, name}
     }
@@ -103,7 +103,7 @@ class Game {
             for (let x = 0; x < room["map"][y].length; x++) {
                 if (room[name].position.x === x && room[name].position.y === y) { // && room[name].bombCount > 0
                     room["map"][y][x] = "b"
-                    // room[name].bombCount--
+                    room[name].bombCount--
                     return {x, y, "timer": 5000}
                 }
             }
@@ -123,14 +123,11 @@ class Game {
 
     //Messages
     addMessage(name, text, roomId){
-        const newMessage = {
-            name,
-            text,
-            date: new Date(),
-        }
-        this.server.get(roomId).messages.push(newMessage);
-        // return newMessage;
-    }
+        this.server.get(roomId).messages.push(
+                name,
+                text,
+                // date: new Date(),
+    )}
 }
 
 export const
@@ -183,6 +180,7 @@ export const
         ws.on('connection', (connection, req) => {
             const playerIP = req.socket.remoteAddress;
             console.log(playerIP);
+            console.log("client", ws);
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 console.log(obj);
@@ -192,7 +190,7 @@ export const
 
                 if (method === 'setPlayer') {
                     const {roomId, name} = fromCmd
-                    connection.send(JSON.stringify({type: "roomID", roomId, name}), {binary: false});
+                    connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
 
                 const {roomId} = args
@@ -215,7 +213,6 @@ export const
 
 
         ws.broadcast = function broadcast(obj) {
-            //почему не лямбда выражение?
             ws.clients.forEach(function each(client) {
                 const ip = client["_socket"]["_peername"].address
                 const roomId = matchPlayerIPWithRoomId[ip].roomId

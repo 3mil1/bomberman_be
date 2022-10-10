@@ -80,6 +80,8 @@ class Game {
         this.server.get(roomId)["map"] = generateLevel(template)
         this.server.get(roomId)["started"] = false
         this.server.get(roomId)["numberOfPlayers"] = 0
+        this.server.get(roomId)["messages"] = [];
+        //добавить поле игрок-соединение
         return roomId
     }
 
@@ -94,19 +96,22 @@ class Game {
         room[name] = new Player(playerPositions[room["numberOfPlayers"]])
         return {roomId, name}
     }
-
+//меняется ли количество бомб?
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
         for (let y = 0; y < room["map"].length; y++) {
             for (let x = 0; x < room["map"][y].length; x++) {
-                if (room[name].position.x === x && room[name].position.y === y) {
+                if (room[name].position.x === x && room[name].position.y === y) { // && room[name].bombCount > 0
                     room["map"][y][x] = "b"
+                    // room[name].bombCount--
                     return {x, y, "timer": 5000}
                 }
             }
         }
     }
 
+//нужно вернуть бомбу игроку после детонации
+    //для изменения карты после взрыва нужно знать дальность взрыва
     detonateBomb(x, y, roomId) {
         const room = this.server.get(roomId)
         room["map"][y][x] = 'd'
@@ -114,6 +119,17 @@ class Game {
 
     startGame(roomId) {
         return this.server.get(roomId).started = true
+    }
+
+    //Messages
+    addMessage(name, text, roomId){
+        const newMessage = {
+            name,
+            text,
+            date: new Date(),
+        }
+        this.server.get(roomId).messages.push(newMessage);
+        // return newMessage;
     }
 }
 
@@ -149,12 +165,17 @@ export const
                 case "setBomb": {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {x, y, timer} = game.setBomb(name, roomId)
-                    startTrackingBomb.placeBomb(x, y, timer, roomId)
+                    startTrackingBomb.placeBomb(x, y, timer, roomId) //нужно передавать имя игрока, который помещает бомбу
                     return {x, y}
                 }
                 case 'startGame': {
                     const {roomId} = args
                     return game.startGame(roomId)
+                }
+                case 'newMessage': {
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP];
+                    const {text} = args;
+                    game.addMessage(name, text, roomId);
                 }
             }
         }
@@ -162,7 +183,6 @@ export const
         ws.on('connection', (connection, req) => {
             const playerIP = req.socket.remoteAddress;
             console.log(playerIP);
-
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 console.log(obj);
@@ -195,6 +215,7 @@ export const
 
 
         ws.broadcast = function broadcast(obj) {
+            //почему не лямбда выражение?
             ws.clients.forEach(function each(client) {
                 const ip = client["_socket"]["_peername"].address
                 const roomId = matchPlayerIPWithRoomId[ip].roomId

@@ -1,5 +1,5 @@
 import {WebSocketServer} from "ws";
-import {generateLevel, playerPositions, template} from "./game_map.js";
+import {addPowerUps, generateLevel, playerPositions, template} from "./game_map.js";
 
 const matchPlayerIPWithRoomId = {}
 
@@ -79,19 +79,17 @@ class Game {
         this.server.set(roomId, {[name]: {}})
         this.server.get(roomId)["map"] = generateLevel(template)
         this.server.get(roomId)["started"] = false
+        this.server.get(roomId)["numberOfPlayers"] = 0
         return roomId
     }
 
     setPlayer({name, roomId = ""}) {
         if (roomId === "") {
-            const roomId = this.#setRoom({name})
-            const room = this.server.get(roomId)
-            room["numberOfPlayers"] = 1
-            room[name] = new Player(playerPositions["1"])
-            return {roomId, name}
+          roomId = this.#setRoom({name})
         }
         const room = this.server.get(roomId)
         if (!room) return
+        addPowerUps(room["map"]);
         room["numberOfPlayers"] += 1
         room[name] = new Player(playerPositions[room["numberOfPlayers"]])
         return {roomId, name}
@@ -163,16 +161,18 @@ export const
 
         ws.on('connection', (connection, req) => {
             const playerIP = req.socket.remoteAddress;
+            console.log(playerIP);
 
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
+                console.log(obj);
                 const {method, args = []} = obj;
 
                 const fromCmd = commands(method, args, playerIP)
 
                 if (method === 'setPlayer') {
                     const {roomId, name} = fromCmd
-                    connection.send(JSON.stringify({roomId, name}), {binary: false});
+                    connection.send(JSON.stringify({type: "roomID", roomId, name}), {binary: false});
                 }
 
                 const {roomId} = args

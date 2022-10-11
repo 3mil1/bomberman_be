@@ -21,12 +21,12 @@ const trackBombs = () => {
 
 }
 
-const Direction = {
-    Up: 'Up',
-    Down: 'Down',
-    Left: 'Left',
-    Right: 'Right'
-}
+const DIRECTION = {
+    UP: 'up',
+    DOWN: 'down',
+    LEFT: 'left',
+    RIGHT: 'right',
+};
 
 class Player {
     constructor({x, y}) {
@@ -35,7 +35,7 @@ class Player {
         this.health = 3;
         this.power = new Set();
         this.bombCount = 1;
-        this.direction = Direction.Down
+        this.direction = DIRECTION.DOWN;
         this.flame = 1;
     }
 
@@ -45,7 +45,8 @@ class Player {
         this.speed *= 1.10;
     }
 
-    setPosition(x, y) {
+    setPosition(x, y, direction) {
+        this.direction = direction;
         return this.position = {
             x, y
         }
@@ -151,8 +152,8 @@ export const
             switch (method) {
                 case 'setPosition' : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    const {x, y} = args
-                    return game.server.get(roomId).players[name].setPosition(x, y)
+                    const {x, y, direction} = args
+                    return game.server.get(roomId).players[name].setPosition(x, y, direction);
                 }
                 case 'setPlayer' : {
                     const {roomId, name} = game.setPlayer(args)

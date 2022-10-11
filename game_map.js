@@ -64,8 +64,8 @@ export const template = [
 ];
 
 export const playerPositions = {
-    1: {x: 1, y: 1},
-    2: {x: 13, y: 11},
-    3: {x: 13, y: 1},
-    4: {x: 1, y: 11},
+    1: {x: 50, y: 50},
+    2: {x: 650, y: 550},
+    3: {x: 650, y: 50},
+    4: {x: 50, y: 550},
 }

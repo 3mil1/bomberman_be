@@ -96,12 +96,11 @@ class Game {
         room[name] = new Player(playerPositions[room["numberOfPlayers"]])
         return {roomId, name}
     }
-//меняется ли количество бомб?
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
         for (let y = 0; y < room["map"].length; y++) {
             for (let x = 0; x < room["map"][y].length; x++) {
-                if (room[name].position.x === x && room[name].position.y === y) { // && room[name].bombCount > 0
+                if (room[name].position.x === x && room[name].position.y === y && room[name].bombCount > 0 ) {
                     room["map"][y][x] = "b"
                     room[name].bombCount--
                     return {x, y, "timer": 5000}
@@ -162,7 +161,7 @@ export const
                 case "setBomb": {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {x, y, timer} = game.setBomb(name, roomId)
-                    startTrackingBomb.placeBomb(x, y, timer, roomId) //нужно передавать имя игрока, который помещает бомбу
+                    startTrackingBomb.placeBomb(x, y, timer, roomId, name) //нужно передавать имя игрока, который помещает бомбу
                     return {x, y}
                 }
                 case 'startGame': {
@@ -180,7 +179,6 @@ export const
         ws.on('connection', (connection, req) => {
             const playerIP = req.socket.remoteAddress;
             console.log(playerIP);
-            console.log("client", ws);
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 console.log(obj);

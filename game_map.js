@@ -2,18 +2,19 @@
 const numRows = 13;
 const numCols = 15;
 
-const ELEMENTS = {
-    WALL: 'wall',
-    DESTROYABLE_WALL: 'destroyable-wall',
-    EMPTY_CELL: 'empty-cell',
-    FIELD: 'field',
-}
+// const ELEMENTS = {
+//     WALL: 'wall',
+//     DESTROYABLE_WALL: 'destroyable-wall',
+//     EMPTY_CELL: 'empty-cell',
+//     FIELD: 'field',
+// }
 
 export const types = {
     wall: '▉',
     destroyableWall: 1,
     emptyCell: 'x',
     blank: '.',
+
     speedUp: 2,
     bombRadius: 3,
     bombsNumber: 4,
@@ -38,7 +39,7 @@ function addPowerUp(type, template) {
 }
 
 export function addPowerUps(template) {
-    [ types.bombs, types.bombRadius, types.speedUp].forEach(t => {
+    [ types.bombsNumber, types.bombRadius, types.speedUp].forEach(t => {
         addPowerUp( t, template);
     })
 }

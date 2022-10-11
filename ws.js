@@ -220,7 +220,6 @@ export const
             }, 1000 / fps);
         }
 
-
         ws.broadcast = function broadcast(obj) {
             ws.clients.forEach(function each(client) {
                 const ip = client["_socket"]["_peername"].address

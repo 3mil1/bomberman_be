@@ -9,14 +9,21 @@ const ELEMENTS = {
     FIELD: 'field',
 }
 
-const types = {
+export const types = {
     wall: '▉',
     destroyableWall: 1,
     emptyCell: 'x',
     blank: '.',
     speedUp: 2,
     bombRadius: 3,
-    bombs: 4,
+    bombsNumber: 4,
+
+    speedUpOpened: 's',
+    bombsNumberOpened: 'n',
+    bombRadiusOpened: 'r',
+
+    bomb: 'b',
+    detonatedBomb: 'd',
 }
 
 function addPowerUp(type, template) {

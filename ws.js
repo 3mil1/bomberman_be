@@ -1,5 +1,5 @@
 import {WebSocketServer} from "ws";
-import {addPowerUps, generateLevel, playerPositions, template} from "./game_map.js";
+import {addPowerUps, generateLevel, playerPositions, template, types} from "./game_map.js";
 
 const matchPlayerIPWithRoomId = {}
 
@@ -30,18 +30,19 @@ const Direction = {
 
 class Player {
     constructor({x, y}) {
-        this.position = {x: x, y: y, speedX: 0, speedY: 0};
+        this.position = {x: x, y: y,} // speedX: 0, speedY: 0};
         this.speed = 1;
         this.health = 3;
         this.power = new Set();
         this.bombCount = 1;
-        this.spriteDir = Direction.Down
-        this.flame = 0;
+        this.direction = Direction.Down
+        this.flame = 1;
     }
 
     #speedUp() {
-        this.position.speedX *= 1.10
-        this.position.speedY *= 1.10
+        // this.position.speedX *= 1.10
+        // this.position.speedY *= 1.10
+        this.speed *= 1.10;
     }
 
     setPosition(x, y) {
@@ -51,7 +52,7 @@ class Player {
     }
 
     decreaseHealth() {
-        return this.health = -1
+        return this.health -= 1
     }
 
     setPower(power) {
@@ -74,46 +75,56 @@ class Game {
         this.server = new Map();
     }
 
-    #setRoom({name}) {
+    #setRoom() {
         const roomId = uuidv4()
-        this.server.set(roomId, {[name]: {}})
+        this.server.set(roomId, {})
         this.server.get(roomId)["map"] = generateLevel(template)
         this.server.get(roomId)["started"] = false
         this.server.get(roomId)["numberOfPlayers"] = 0
         this.server.get(roomId)["messages"] = [];
+        this.server.get(roomId)["players"] = {};
         return roomId
     }
 
     setPlayer({name, roomId = ""}) {
         if (roomId === "") {
-          roomId = this.#setRoom({name})
+          roomId = this.#setRoom()
         }
         const room = this.server.get(roomId)
-        if (!room) return
+        if (!room) return //что возвращается фронту в этом случае?
         addPowerUps(room["map"]);
         room["numberOfPlayers"] += 1
-        //добавить высчитывание позиции по осям x y
-        room[name] = new Player(playerPositions[room["numberOfPlayers"]])
+        room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
         return {roomId, name}
     }
     setBomb(name, roomId) {
+        //что здесь происходит???
         const room = this.server.get(roomId)
-        for (let y = 0; y < room["map"].length; y++) {
-            for (let x = 0; x < room["map"][y].length; x++) {
-                if (room[name].position.x === x && room[name].position.y === y && room[name].bombCount > 0 ) {
-                    room["map"][y][x] = "b"
-                    room[name].bombCount--
+        // for (let y = 0; y < room["map"].length; y++) {
+        //     for (let x = 0; x < room["map"][y].length; x++) {
+        //         if (room.players[name].position.x === x && room[name].position.y === y && room[name].bombCount > 0 ) {
+        //             room["map"][y][x] = "b"
+        //             room.players[name].bombCount--
+        //             return {x, y, "timer": 5000}
+        //         }
+        //     }
+        // }
+        if ( room.players[name].bombCount > 0 ) {
+                    const x = Math.round(room.players[name].position.x/50);
+                    const y = Math.round(room.players[name].position.y/50);
+                    room["map"][y][x] = types.bomb;
+                    room.players[name].bombCount--
                     return {x, y, "timer": 5000}
                 }
-            }
-        }
+
+
     }
 
 //нужно вернуть бомбу игроку после детонации
     //для изменения карты после взрыва нужно знать дальность взрыва
     detonateBomb(x, y, roomId) {
         const room = this.server.get(roomId)
-        room["map"][y][x] = 'd'
+        room["map"][y][x] = types.detonatedBomb;
     }
 
     startGame(roomId) {
@@ -125,7 +136,6 @@ class Game {
         this.server.get(roomId).messages.push(
                 name,
                 text,
-                // date: new Date(),
     )}
 }
 
@@ -142,7 +152,7 @@ export const
                 case 'setPosition' : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {x, y} = args
-                    return game.server.get(roomId)[name].setPosition(x, y)
+                    return game.server.get(roomId).players[name].setPosition(x, y)
                 }
                 case 'setPlayer' : {
                     const {roomId, name} = game.setPlayer(args)
@@ -151,15 +161,16 @@ export const
                 }
                 case 'decreaseHealth': {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    return game.server.get(roomId)[name].decreaseHealth()
+                    return game.server.get(roomId).players[name].decreaseHealth()
                 }
                 case 'setPower': {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {power} = args
-                    return game.server.get(roomId)[name].setPower(power)
+                    return game.server.get(roomId).players[name].setPower(power)
                 }
                 case "setBomb": {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    //???
                     const {x, y, timer} = game.setBomb(name, roomId)
                     startTrackingBomb.placeBomb(x, y, timer, roomId, name) //нужно передавать имя игрока, который помещает бомбу
                     return {x, y}

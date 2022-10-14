@@ -47,3 +47,11 @@ Application was created for educational purposes
   }
 }
 ```
+
+### setBomb
+
+```json
+{
+  "method": "setBomb"
+}
+```

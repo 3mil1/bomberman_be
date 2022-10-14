@@ -1,4 +1,3 @@
 import {server} from "./ws.js";
 
-
-server(8009);
+server(8008);

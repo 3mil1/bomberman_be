@@ -1,5 +1,5 @@
 import {WebSocketServer} from "ws";
-import {addPowerUps, generateLevel, playerPositions, template, types} from "./game_map.js";
+import {addPowerUps, changeMapAfterExplosion, generateLevel, playerPositions, template, types} from "./game_map.js";
 
 const matchPlayerIPWithRoomId = {}
 
@@ -9,10 +9,10 @@ const trackBombs = () => {
     return {
         setCallback: (callback) => {
             return {
-                placeBomb: (x, y, timer, roomId) => {
-                    trackedBombs[`${x}:${y}`] = "someValue"
+                placeBomb: (x, y, timer, roomId, name) => {
+                    trackedBombs[`${x}:${y}`] = "someValue"//name?
                     setTimeout(() => {
-                        callback(x, y, roomId)
+                        callback(x, y, roomId, name)
                     }, timer);
                 }
             }
@@ -99,7 +99,6 @@ class Game {
         return {roomId, name}
     }
     setBomb(name, roomId) {
-        //что здесь происходит???
         const room = this.server.get(roomId)
         // for (let y = 0; y < room["map"].length; y++) {
         //     for (let x = 0; x < room["map"][y].length; x++) {
@@ -110,6 +109,8 @@ class Game {
         //         }
         //     }
         // }
+
+        //should there be a check for field's type before placement?
         if ( room.players[name].bombCount > 0 ) {
                     const x = Math.round(room.players[name].position.x/50);
                     const y = Math.round(room.players[name].position.y/50);
@@ -123,9 +124,12 @@ class Game {
 
 //нужно вернуть бомбу игроку после детонации
     //для изменения карты после взрыва нужно знать дальность взрыва
-    detonateBomb(x, y, roomId) {
-        const room = this.server.get(roomId)
-        room["map"][y][x] = types.detonatedBomb;
+    detonateBomb(x, y, roomId, name) {
+        const room = this.server.get(roomId);
+        let player = room.players[name];
+        player.bombCount++;
+        let flameRadius = player.flame;
+        room["map"] = changeMapAfterExplosion(x, y, flameRadius, room.map);
     }
 
     startGame(roomId) {
@@ -142,7 +146,7 @@ class Game {
 
 export const
     server = (port) => {
-        const fps = 1;
+        const fps = 60;
         const ws = new WebSocketServer({port});
         const game = new Game();
         let trackedBombs = trackBombs()
@@ -162,6 +166,7 @@ export const
                 }
                 case 'decreaseHealth': {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    //add a check for 0 lives
                     return game.server.get(roomId).players[name].decreaseHealth()
                 }
                 case 'setPower': {
@@ -172,6 +177,7 @@ export const
                 case "setBomb": {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     //???
+                    console.log("Got here");
                     const {x, y, timer} = game.setBomb(name, roomId)
                     startTrackingBomb.placeBomb(x, y, timer, roomId, name) //нужно передавать имя игрока, который помещает бомбу
                     return {x, y}
@@ -184,6 +190,7 @@ export const
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP];
                     const {text} = args;
                     game.addMessage(name, text, roomId);
+                    //add broadcast
                 }
             }
         }

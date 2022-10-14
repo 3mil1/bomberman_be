@@ -1,6 +1,7 @@
 import {WebSocketServer} from "ws";
 import {addPowerUps, changeMapAfterExplosion, generateLevel, playerPositions, template, types} from "./game_map.js";
 import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
+import { checkCollision } from "./collision.js";
 
 const matchPlayerIPWithRoomId = {}
 
@@ -31,7 +32,7 @@ const DIRECTION = {
 
 class Player {
     constructor({x, y}) {
-        this.position = {x: x, y: y, speedX: 0, speedY: 0};
+        this.position = {x, y};
         this.speed = 1;
         this.health = 3;
         this.power = new Set();
@@ -143,17 +144,19 @@ export const
                 case SET_POSITION : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {x, y, direction} = args
-                    return game.server.get(roomId).players[name].setPosition(x, y, direction);
+                    if (checkCollision(game.server.get(roomId).map, direction,{x:x,y:y})){
+                        return game.server.get(roomId).players[name].setPosition(x, y, direction);
+                    }
                 }
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
 
                     //set Initial player position
-                    const count = game.server.get(roomId).numberOfPlayers;
-                    const obj = playerPositions[count];
-                    const cube = 50
-                    game.server.get(roomId)[name].setPosition(obj.x * cube, obj.y * cube);
+                    // const count = game.server.get(roomId).numberOfPlayers;
+                    // const obj = playerPositions[count];
+                    // const cube = 50
+                    // game.server.get(roomId)[name].setPosition(obj.x * cube, obj.y * cube);
                     return {roomId, name}
                 }
                 case DECREASE_HEALTH: {

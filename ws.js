@@ -1,9 +1,22 @@
 import {WebSocketServer} from "ws";
 import {addPowerUps, changeMapAfterExplosion, generateLevel, playerPositions, template, types} from "./game_map.js";
 import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
-import { CollisionMap } from "./collision_map.js";
+// import { CollisionMap } from "./collision_map.js";
+import { checkCollision2 } from './collision_map.js';
+
+Array.prototype.remove = function () {
+    let what, a = arguments, L = a.length, ax;
+    while (L && this.length) {
+        what = a[--L];
+        while ((ax = this.indexOf(what)) !== -1) {
+            this.splice(ax, 1);
+        }
+    }
+    return this;
+};
 
 const matchPlayerIPWithRoomId = {}
+const playerMoving = [];
 
 const trackBombs = () => {
     const trackedBombs = {}
@@ -20,7 +33,6 @@ const trackBombs = () => {
             }
         }
     }
-
 }
 
 const DIRECTION = {
@@ -45,9 +57,51 @@ class Player {
         this.speed *= 1.10;
     }
 
-    setPosition(position, direction) {
-        this.direction = direction;
-        return this.position = position
+    setPosition2(direction) {
+        if (direction != null) this.direction = direction;
+        let position = this.position;
+        switch (this.direction) {
+            case DIRECTION.DOWN: {
+                position.y += this.speed;
+                break;
+            }
+            case DIRECTION.UP: {
+                position.y -= this.speed;
+                break;
+            }
+            case DIRECTION.LEFT: {
+                position.x -= this.speed;
+                break;
+            }
+            case DIRECTION.RIGHT: {
+                position.x += this.speed;
+                break;
+            }
+        }
+        return position
+   
+    }
+
+    // setPosition(direction) {
+    //     if (direction != null) this.direction = direction;
+    //     switch (this.direction) {
+    //         case DIRECTION.DOWN: {
+    //             return this.position.y += this.speed;
+    //         }
+    //         case DIRECTION.UP: {
+    //             return this.position.y -= this.speed;
+    //         }
+    //         case DIRECTION.LEFT: {
+    //             return this.position.x -= this.speed;
+    //         }
+    //         case DIRECTION.RIGHT: {
+    //             return this.position.x += this.speed;
+    //         }
+    //     }
+    // }
+    
+    getPosition(){
+        return this.position
     }
 
     decreaseHealth() {
@@ -87,16 +141,17 @@ class Game {
 
     setPlayer({name, roomId = ""}) {
         if (roomId === "") {
-          roomId = this.#setRoom()
+            roomId = this.#setRoom()
         }
         const room = this.server.get(roomId)
         if (!room) return //что возвращается фронту в этом случае?
         addPowerUps(room["map"]);
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
-        room.collisionMap = new CollisionMap(this.server.get(roomId).map);
+        // room.collisionMap = new CollisionMap(this.server.get(roomId).map);
         return {roomId, name}
     }
+
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
         if ( room.players[name].bombCount > 0 ) {
@@ -121,11 +176,12 @@ class Game {
     }
 
     //Messages
-    addMessage(name, text, roomId){
+    addMessage(name, text, roomId) {
         this.server.get(roomId).messages.push(
-                name,
-                text,
-    )}
+            name,
+            text,
+        )
+    }
 }
 
 export const 
@@ -140,13 +196,22 @@ export const
             switch (method) {
                 case SET_POSITION : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    const oldPosition = game.server.get(roomId).players[name].position;
-                    const collisionMap = game.server.get(roomId).collisionMap;
-                    const {position, direction} = args
-                    if (collisionMap.checkCollision(position, direction)) {
-                      return game.server.get(roomId).players[name].setPosition(position, direction);
-                    }
-                    return game.server.get(roomId).players[name].setPosition(oldPosition, direction);
+                    const {move, direction} = args
+                    const player = game.server.get(roomId).players[name];
+                    const oldPosition = player.position;
+                    const player_direction = player.direction;
+                    const newPosition = game.server.get(roomId).players[name].setPosition2(direction)
+                    
+                    let map = game.server.get(roomId).map;
+                    if (checkCollision2(map, newPosition, player_direction) && move) {
+                        if (!playerMoving.includes(playerIP)) playerMoving.push(playerIP);
+                        player.position =oldPosition
+                        return newPosition;
+                    } else {
+                        playerMoving.remove(playerIP);
+                        return oldPosition;
+                    }   
+
                 }
 
                 case SET_PLAYER : {
@@ -182,8 +247,8 @@ export const
                     const {roomId} = args
                     return game.startGame(roomId)
                 }
-                case NEW_MESSAGE : {
-                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP];
+                case 'newMessage': {
+                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {text} = args;
                     game.addMessage(name, text, roomId);
                     //add broadcast
@@ -194,10 +259,8 @@ export const
         ws.on('connection', (connection, req) => {
 
             const playerIP = req.socket.remoteAddress;
-
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
-                console.log(obj);
                 const {method, args = []} = obj;
 
                 const fromCmd = commands(method, args, playerIP)
@@ -211,13 +274,17 @@ export const
                 if (roomId) {
                     const gameClass = game.server
                     const gameObj = Object.fromEntries(gameClass);
-                    if (gameObj[roomId].started) animate(gameObj);
+                    if (gameObj[roomId].started) animate(gameObj, playerIP, connection);
                 }
             });
         })
 
         function animate(obj) {
             ws.broadcast(obj);
+
+            playerMoving.forEach(ip => {
+                commands('setPosition', { move: true, direction: null }, ip);
+            })
 
             setTimeout(() => {
                 startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game))

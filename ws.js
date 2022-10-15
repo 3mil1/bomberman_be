@@ -1,7 +1,7 @@
 import {WebSocketServer} from "ws";
 import {addPowerUps, changeMapAfterExplosion, generateLevel, playerPositions, template, types} from "./game_map.js";
 import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
-import { checkCollision } from "./collision.js";
+import { CollisionMap } from "./collision_map.js";
 
 const matchPlayerIPWithRoomId = {}
 
@@ -42,16 +42,12 @@ class Player {
     }
 
     #speedUp() {
-        // this.position.speedX *= 1.10
-        // this.position.speedY *= 1.10
         this.speed *= 1.10;
     }
 
-    setPosition(x, y, direction) {
+    setPosition(position, direction) {
         this.direction = direction;
-        return this.position = {
-            x, y
-        }
+        return this.position = position
     }
 
     decreaseHealth() {
@@ -98,6 +94,7 @@ class Game {
         addPowerUps(room["map"]);
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
+        room.collisionMap = new CollisionMap(this.server.get(roomId).map);
         return {roomId, name}
     }
     setBomb(name, roomId) {
@@ -143,11 +140,15 @@ export const
             switch (method) {
                 case SET_POSITION : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    const {x, y, direction} = args
-                    if (checkCollision(game.server.get(roomId).map, direction,{x:x,y:y})){
-                        return game.server.get(roomId).players[name].setPosition(x, y, direction);
+                    const oldPosition = game.server.get(roomId).players[name].position;
+                    const collisionMap = game.server.get(roomId).collisionMap;
+                    const {position, direction} = args
+                    if (collisionMap.checkCollision(position, direction)) {
+                      return game.server.get(roomId).players[name].setPosition(position, direction);
                     }
+                    return game.server.get(roomId).players[name].setPosition(oldPosition, direction);
                 }
+
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}

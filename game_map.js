@@ -77,3 +77,29 @@ export const playerPositions = {
     3: {x: 650, y: 50},
     4: {x: 50, y: 550},
 }
+
+export function changeMapAfterExplosion(x, y, radius, map) {
+    map[y][x] = types.detonatedBomb;
+    for (let i = 1; i <= radius; i++) {
+        if (x + i < numCols) map[y][x + i] = switchType(x + i, y, map);
+        if (x - i > 0) map[y][x - i] = switchType(x - i, y, map);
+        if (y + i < numRows) map[y+i][x] = switchType(x, y + i, map);
+        if (y - 1 > 0) map[y-i][x] = switchType(x, y - i, map);
+    }
+    return map
+}
+
+function switchType(x, y, map) {
+    switch (map[x][y]) {
+        case types.destroyableWall || types.emptyCell:
+            return types.blank;
+        case types.speedUp:
+            return types.speedUpOpened;
+        case types.bombsNumber:
+            return types.bombsNumberOpened;
+        case types.bombRadius:
+            return types.bombRadiusOpened;
+        default:
+            return map[x][y];
+    }
+}

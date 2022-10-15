@@ -165,7 +165,7 @@ class Game {
 
 export const
     server = (port) => {
-        const fps = 1;
+        const fps = 60;
         const ws = new WebSocketServer({port});
         const game = new Game();
         let trackedBombs = trackBombs()

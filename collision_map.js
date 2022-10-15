@@ -5,7 +5,6 @@ export class CollisionMap{
   }
 
   checkCollision(position, direction) {
-    console.log("CHECKING COLLSIION");
     const left_top_corner = { x: position.x, y: position.y };
     const right__top_corner = { x: position.x + this.offset, y: position.y };
     const left_bottom_corner = { x: position.x, y: position.y + this.offset };

@@ -99,10 +99,6 @@ class Player {
     //         }
     //     }
     // }
-    
-    getPosition(){
-        return this.position
-    }
 
     decreaseHealth() {
         return this.health -= 1
@@ -205,7 +201,6 @@ export const
                     let map = game.server.get(roomId).map;
                     if (checkCollision2(map, newPosition, player_direction) && move) {
                         if (!playerMoving.includes(playerIP)) playerMoving.push(playerIP);
-                        player.position =oldPosition
                         return newPosition;
                     } else {
                         playerMoving.remove(playerIP);

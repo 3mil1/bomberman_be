@@ -1,13 +1,5 @@
-// const grid = 64;
 const numRows = 13;
 const numCols = 15;
-
-// const ELEMENTS = {
-//     WALL: 'wall',
-//     DESTROYABLE_WALL: 'destroyable-wall',
-//     EMPTY_CELL: 'empty-cell',
-//     FIELD: 'field',
-// }
 
 export const types = {
     wall: '▉',
@@ -39,8 +31,8 @@ function addPowerUp(type, template) {
 }
 
 export function addPowerUps(template) {
-    [ types.bombsNumber, types.bombRadius, types.speedUp].forEach(t => {
-        addPowerUp( t, template);
+    [types.bombsNumber, types.bombRadius, types.speedUp].forEach(t => {
+        addPowerUp(t, template);
     })
 }
 
@@ -78,20 +70,49 @@ export const playerPositions = {
     4: {x: 50, y: 550},
 }
 
-export function changeMapAfterExplosion(x, y, radius, map) {
+export function fire(x, y, radius, map) {
     map[y][x] = types.detonatedBomb;
+    let stopRight = false;
+    let stopLeft = false;
+    let stopUp = false;
+    let stopDown = false;
+    for (let i = 1; i <= radius; i++) {
+        if (x + i < numCols) {
+            stopRight = stopRight || map[y][x + i] === types.wall;
+            map[y][x + i] = stopRight ? map[y][x + i] : types.detonatedBomb;
+        }
+        if (x - i > 0) {
+            stopLeft = stopLeft || map[y][x - i] === types.wall;
+            map[y][x - i] = stopLeft ? map[y][x - i] : types.detonatedBomb;
+        }
+        if (y + i < numRows) {
+            stopUp = stopUp || map[y + i][x] === types.wall;
+            map[y + i][x] = stopUp ? map[y + i][x] : types.detonatedBomb;
+        }
+        if (y - 1 > 0) {
+            stopDown = stopDown || map[y - i][x] === types.wall;
+            map[y - i][x] = stopDown ? map[y - i][x] : types.detonatedBomb;
+        }
+    }
+    return map;
+}
+
+export function changeMapAfterExplosion(x, y, radius, map) {
+    map[y][x] = types.blank;
     for (let i = 1; i <= radius; i++) {
         if (x + i < numCols) map[y][x + i] = switchType(x + i, y, map);
         if (x - i > 0) map[y][x - i] = switchType(x - i, y, map);
-        if (y + i < numRows) map[y+i][x] = switchType(x, y + i, map);
-        if (y - 1 > 0) map[y-i][x] = switchType(x, y - i, map);
+        if (y + i < numRows) map[y + i][x] = switchType(x, y + i, map);
+        if (y - 1 > 0) map[y - i][x] = switchType(x, y - i, map);
     }
     return map
 }
 
 function switchType(x, y, map) {
-    switch (map[x][y]) {
-        case types.destroyableWall || types.emptyCell:
+    switch (map[y][x]) {
+        case types.destroyableWall:
+        case types.emptyCell:
+        case types.detonatedBomb:
             return types.blank;
         case types.speedUp:
             return types.speedUpOpened;
@@ -100,6 +121,6 @@ function switchType(x, y, map) {
         case types.bombRadius:
             return types.bombRadiusOpened;
         default:
-            return map[x][y];
+            return map[y][x];
     }
 }

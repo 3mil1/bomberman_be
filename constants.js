@@ -1,3 +1,4 @@
+//ws actions
 export const SET_PLAYER = 'setPlayer';
 export const START_GAME = 'startGame';
 export const SET_BOMB = 'setBomb';

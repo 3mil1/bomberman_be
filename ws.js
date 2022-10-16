@@ -1,5 +1,10 @@
 import {WebSocketServer} from "ws";
-import {addPowerUps, changeMapAfterExplosion, generateLevel, playerPositions, template, types} from "./game_map.js";
+import {
+    GameMap,
+    playerPositions,
+    template,
+    types
+} from "./game_map.js";
 import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
 import checkCollision from './collision_map.js';
 
@@ -21,12 +26,15 @@ const trackBombs = () => {
     const trackedBombs = {}
 
     return {
-        setCallback: (callback) => {
+        setCallback: (afterPlace, afterExplosion) => {
             return {
                 placeBomb: (x, y, timer, roomId, name) => {
                     trackedBombs[`${x}:${y}`] = "someValue"//name?
                     setTimeout(() => {
-                        callback(x, y, roomId, name)
+                        afterPlace(x, y, roomId, name);
+                        setTimeout(() => {
+                            afterExplosion(x, y, roomId, name);
+                        }, 1000);
                     }, timer);
                 }
             }
@@ -110,7 +118,7 @@ class Game {
     #setRoom() {
         const roomId = uuidv4()
         this.server.set(roomId, {})
-        this.server.get(roomId)["map"] = generateLevel(template)
+        this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
         this.server.get(roomId)["numberOfPlayers"] = 0
         this.server.get(roomId)["messages"] = [];
@@ -124,7 +132,7 @@ class Game {
         }
         const room = this.server.get(roomId)
         if (!room) return //что возвращается фронту в этом случае?
-        addPowerUps(room["map"]);
+        room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
         return {roomId, name}
@@ -132,13 +140,14 @@ class Game {
 
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
-        if (room.players[name].bombCount > 0) {
+
             const x = Math.round(room.players[name].position.x / 50);
             const y = Math.round(room.players[name].position.y / 50);
-            room["map"][y][x] = types.bomb;
+if ( room.players[name].bombCount > 0 ) {
+                    room["map"].template[y][x] = types.bomb;
             room.players[name].bombCount--
             return {x, y, "timer": 5000}
-        }
+        }return {x, y, "timer": 0};
     }
 
     detonateBomb(x, y, roomId, name) {
@@ -146,7 +155,14 @@ class Game {
         let player = room.players[name];
         player.bombCount++;
         let flameRadius = player.flame;
-        room["map"] = changeMapAfterExplosion(x, y, flameRadius, room.map);
+        room["map"].explosion(x, y, flameRadius);
+    }
+
+    changeMap(x, y, roomId, name) {
+        const room = this.server.get(roomId);
+        let player = room.players[name];
+        let flameRadius = player.flame;
+        room["map"].changeMapAfterExplosion(x, y, flameRadius);
     }
 
     startGame(roomId) {
@@ -162,7 +178,7 @@ class Game {
     }
 }
 
-export const 
+export const
     server = (port) => {
         const fps = 60;
         const ws = new WebSocketServer({port});
@@ -202,10 +218,8 @@ export const
                 }
                 case SET_BOMB: {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    //???
-                    console.log("Got here");
                     const {x, y, timer} = game.setBomb(name, roomId)
-                    startTrackingBomb.placeBomb(x, y, timer, roomId, name) //нужно передавать имя игрока, который помещает бомбу
+                    if (timer > 0) startTrackingBomb.placeBomb(x, y, timer, roomId, name);
                     return {x, y}
                 }
                 case START_GAME: {
@@ -227,6 +241,7 @@ export const
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
+
 
                 const fromCmd = commands(method, args, playerIP)
 
@@ -252,7 +267,7 @@ export const
             })
 
             setTimeout(() => {
-                startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game))
+                startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game), game.changeMap.bind(game))
                 animate(obj)
             }, 1000 / fps);
         }
@@ -262,7 +277,7 @@ export const
                 const ip = client["_socket"]["_peername"].address
                 const roomId = matchPlayerIPWithRoomId[ip].roomId
                 if (!roomId) return
-                client.send(JSON.stringify(obj[roomId]), {binary: false});
+                client.send(JSON.stringify({...obj[roomId], map:obj[roomId]['map'].template}), {binary: false});
             });
         };
 

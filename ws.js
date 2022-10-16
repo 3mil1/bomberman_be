@@ -198,7 +198,7 @@ export const
                         playerMoving.remove(playerIP)
                     }
 
-                    return game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map, direction);
+                    return game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map.template, direction);
                 }
 
                 case SET_PLAYER : {

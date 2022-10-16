@@ -200,8 +200,8 @@ export const
             console.log(playerIP);
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
-                // console.log(obj);
                 const {method, args = []} = obj;
+
 
                 const fromCmd = commands(method, args, playerIP)
 

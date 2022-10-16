@@ -1,9 +1,3 @@
-import {BOMB_NUMBER, BOMB_RADIUS, SPEED_UP} from "./constants.js";
-
-//add to class
-const numRows = 13;
-const numCols = 15;
-
 export const types = {
     wall: '▉',
     destroyableWall: 1,
@@ -21,13 +15,15 @@ export const types = {
 export class GameMap {
     constructor(template) {
         this.template = template;
+        this.numRows = this.template.length;
+        this.numCols = this.template[0].length;
         this.#generateLevel();
         this.powerUps = {};
     }
 
     #generateLevel() {
-        for (let row = 0; row < numRows; row++) {
-            for (let col = 0; col < numCols; col++) {
+        for (let row = 0; row < this.numRows; row++) {
+            for (let col = 0; col < this.numCols; col++) {
                 if (this.template[row][col] === "." && Math.random() < 0.9) {
                     this.template[row][col] = types.destroyableWall;
                 }
@@ -43,8 +39,8 @@ export class GameMap {
 
     #addPowerUp(type) {
         while (true) {
-            const i = Math.floor(Math.random() * numRows);
-            const j = Math.floor(Math.random() * numCols);
+            const i = Math.floor(Math.random() * this.numRows);
+            const j = Math.floor(Math.random() * this.numCols);
             const key = `${i}:${j}`;
             if (this.template[i][j] === types.destroyableWall && !this.powerUps[key]) {
                 this.powerUps[key] = type;
@@ -60,7 +56,7 @@ export class GameMap {
         let stopUp = false;
         let stopDown = false;
         for (let i = 1; i <= radius; i++) {
-            if (x + i < numCols) {
+            if (x + i < this.numCols) {
                 stopRight = stopRight || this.template[y][x + i] === types.wall;
                 this.template[y][x + i] = stopRight ? this.template[y][x + i] : types.detonatedBomb;
             }
@@ -68,7 +64,7 @@ export class GameMap {
                 stopLeft = stopLeft || this.template[y][x - i] === types.wall;
                 this.template[y][x - i] = stopLeft ? this.template[y][x - i] : types.detonatedBomb;
             }
-            if (y + i < numRows) {
+            if (y + i < this.numRows) {
                 stopUp = stopUp || this.template[y + i][x] === types.wall;
                 this.template[y + i][x] = stopUp ? this.template[y + i][x] : types.detonatedBomb;
             }
@@ -83,9 +79,9 @@ export class GameMap {
     changeMapAfterExplosion(x, y, radius) {
         this.template[y][x] = types.blank;
         for (let i = 1; i <= radius; i++) {
-            if (x + i < numCols) this.template[y][x + i] = this.#switchType(x + i, y);
+            if (x + i < this.numCols) this.template[y][x + i] = this.#switchType(x + i, y);
             if (x - i > 0) this.template[y][x - i] = this.#switchType(x - i, y);
-            if (y + i < numRows) this.template[y + i][x] = this.#switchType(x, y + i);
+            if (y + i < this.numRows) this.template[y + i][x] = this.#switchType(x, y + i);
             if (y - 1 > 0) this.template[y - i][x] = this.#switchType(x, y - i);
         }
         return this.template

@@ -42,67 +42,64 @@ const DIRECTION = {
 };
 
 class Player {
-    constructor({x, y}) {
-        this.position = {x, y};
-        this.speed = 1;
-        this.health = 3;
-        this.power = new Set();
-        this.bombCount = 1;
-        this.direction = DIRECTION.DOWN;
-        this.flame = 1;
-        this.newPosition = {x, y}
-    }
+  constructor({ x, y }) {
+    this.position = { x, y };
+    this.speed = 1;
+    this.health = 3;
+    this.power = new Set();
+    this.bombCount = 1;
+    this.direction = DIRECTION.DOWN;
+    this.flame = 1;
+  }
 
-    #speedUp() {
-        this.speed *= 1.10;
-    }
+  #speedUp() {
+    this.speed *= 1.1;
+  }
 
-    setPosition(map, direction) {
-        if (direction != null) this.direction = direction;
-        this.newPosition = Object.assign({}, this.position);
-        switch (this.direction) {
-            case DIRECTION.DOWN: {
-                this.newPosition.y = this.position.y + this.speed;
-                break;
-            }
-            case DIRECTION.UP: {
-                this.newPosition.y = this.position.y - this.speed;
-                break;
-            }
-            case DIRECTION.LEFT: {
-                this.newPosition.x = this.position.x - this.speed;
-                break;
-            }
-            case DIRECTION.RIGHT: {
-                this.newPosition.x = this.position.x + this.speed;
-                break;
-            }
-        }
-        if (checkCollision(map, this.newPosition, this.direction)) {
-            this.position = this.newPosition
-            return this.newPosition
-        }else{
-            this.position;
-        }
+  setPosition(map, direction) {
+    if (direction != null) this.direction = direction;
+    let newPosition = Object.assign({}, this.position);
+    switch (this.direction) {
+      case DIRECTION.DOWN: {
+        newPosition.y = this.position.y + this.speed;
+        break;
+      }
+      case DIRECTION.UP: {
+        newPosition.y = this.position.y - this.speed;
+        break;
+      }
+      case DIRECTION.LEFT: {
+        newPosition.x = this.position.x - this.speed;
+        break;
+      }
+      case DIRECTION.RIGHT: {
+        newPosition.x = this.position.x + this.speed;
+        break;
+      }
     }
+    if (checkCollision(map, newPosition, this.direction)) {
+      this.position = newPosition;
+      return newPosition;
+    }
+  }
 
-    decreaseHealth() {
-        return this.health -= 1
-    }
+  decreaseHealth() {
+    return (this.health -= 1);
+  }
 
-    setPower(power) {
-        switch (power) {
-            case "speedUp": {
-                return this.#speedUp();
-            }
-            case "bombIncrease": {
-                return this.bombCount += 1;
-            }
-            case "flameIncrease": {
-                return this.flame += 1;
-            }
-        }
+  setPower(power) {
+    switch (power) {
+      case 'speedUp': {
+        return this.#speedUp();
+      }
+      case 'bombIncrease': {
+        return (this.bombCount += 1);
+      }
+      case 'flameIncrease': {
+        return (this.flame += 1);
+      }
     }
+  }
 }
 
 class Game {

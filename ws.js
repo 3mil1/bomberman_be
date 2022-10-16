@@ -14,6 +14,17 @@ Array.prototype.remove = function () {
     return this;
 };
 
+Array.prototype.remove = function () {
+    let what, a = arguments, L = a.length, ax;
+    while (L && this.length) {
+        what = a[--L];
+        while ((ax = this.indexOf(what)) !== -1) {
+            this.splice(ax, 1);
+        }
+    }
+    return this;
+};
+
 const matchPlayerIPWithRoomId = {}
 const playerMoving = [];
 
@@ -43,14 +54,14 @@ const DIRECTION = {
 
 class Player {
     constructor({x, y}) {
-        this.position = {x:x, y:y};
+        this.position = {x, y};
         this.speed = 1;
         this.health = 3;
         this.power = new Set();
         this.bombCount = 1;
         this.direction = DIRECTION.DOWN;
         this.flame = 1;
-        this.newPosition = {x: x, y: y}
+        this.newPosition = {x, y}
     }
 
     #speedUp() {
@@ -135,13 +146,13 @@ class Game {
 
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
-        if ( room.players[name].bombCount > 0 ) {
-                    const x = Math.round(room.players[name].position.x/50);
-                    const y = Math.round(room.players[name].position.y/50);
-                    room["map"][y][x] = types.bomb;
-                    room.players[name].bombCount--
-                    return {x, y, "timer": 5000}
-                }
+        if (room.players[name].bombCount > 0) {
+            const x = Math.round(room.players[name].position.x / 50);
+            const y = Math.round(room.players[name].position.y / 50);
+            room["map"][y][x] = types.bomb;
+            room.players[name].bombCount--
+            return {x, y, "timer": 5000}
+        }
     }
 
     detonateBomb(x, y, roomId, name) {
@@ -215,7 +226,7 @@ export const
                     const {roomId} = args
                     return game.startGame(roomId)
                 }
-                case 'newMessage': {
+                case NEW_MESSAGE : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {text} = args;
                     game.addMessage(name, text, roomId);
@@ -251,7 +262,7 @@ export const
             ws.broadcast(obj);
 
             playerMoving.forEach(ip => {
-                commands('setPosition', { move: true, direction: null }, ip);
+                commands('setPosition', {move: true, direction: null}, ip)
             })
 
             setTimeout(() => {

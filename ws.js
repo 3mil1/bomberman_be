@@ -1,6 +1,18 @@
 import {WebSocketServer} from "ws";
 import {addPowerUps, changeMapAfterExplosion, generateLevel, playerPositions, template, types} from "./game_map.js";
 import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
+import checkCollision from './collision_map.js';
+
+Array.prototype.remove = function () {
+    let what, a = arguments, L = a.length, ax;
+    while (L && this.length) {
+        what = a[--L];
+        while ((ax = this.indexOf(what)) !== -1) {
+            this.splice(ax, 1);
+        }
+    }
+    return this;
+};
 
 Array.prototype.remove = function () {
     let what, a = arguments, L = a.length, ax;
@@ -42,35 +54,46 @@ const DIRECTION = {
 
 class Player {
     constructor({x, y}) {
-        this.position = {x: x, y: y,};
+        this.position = {x, y};
         this.speed = 1;
         this.health = 3;
         this.power = new Set();
         this.bombCount = 1;
         this.direction = DIRECTION.DOWN;
         this.flame = 1;
+        this.newPosition = {x, y}
     }
 
     #speedUp() {
         this.speed *= 1.10;
     }
 
-    setPosition(direction) {
+    setPosition(map, direction) {
         if (direction != null) this.direction = direction;
-
+        this.newPosition = Object.assign({}, this.position);
         switch (this.direction) {
             case DIRECTION.DOWN: {
-                return this.position.y += this.speed;
+                this.newPosition.y = this.position.y + this.speed;
+                break;
             }
             case DIRECTION.UP: {
-                return this.position.y -= this.speed;
+                this.newPosition.y = this.position.y - this.speed;
+                break;
             }
             case DIRECTION.LEFT: {
-                return this.position.x -= this.speed;
+                this.newPosition.x = this.position.x - this.speed;
+                break;
             }
             case DIRECTION.RIGHT: {
-                return this.position.x += this.speed;
+                this.newPosition.x = this.position.x + this.speed;
+                break;
             }
+        }
+        if (checkCollision(map, this.newPosition, this.direction)) {
+            this.position = this.newPosition
+            return this.newPosition
+        }else{
+            this.position;
         }
     }
 
@@ -153,7 +176,7 @@ class Game {
     }
 }
 
-export const
+export const 
     server = (port) => {
         const fps = 60;
         const ws = new WebSocketServer({port});
@@ -173,8 +196,9 @@ export const
                         playerMoving.remove(playerIP)
                     }
 
-                    return game.server.get(roomId).players[name].setPosition(direction);
+                    return game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map, direction);
                 }
+
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
@@ -212,6 +236,7 @@ export const
         }
 
         ws.on('connection', (connection, req) => {
+
             const playerIP = req.socket.remoteAddress;
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);

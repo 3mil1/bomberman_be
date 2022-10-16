@@ -128,7 +128,6 @@ class Game {
     }
 
     changeMap(x, y, roomId, name) {
-        console.log("map");
         const room = this.server.get(roomId);
         let player = room.players[name];
         let flameRadius = player.flame;
@@ -201,7 +200,7 @@ export const
             console.log(playerIP);
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
-                console.log(obj);
+                // console.log(obj);
                 const {method, args = []} = obj;
 
                 const fromCmd = commands(method, args, playerIP)

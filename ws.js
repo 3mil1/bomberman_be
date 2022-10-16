@@ -1,8 +1,7 @@
 import {WebSocketServer} from "ws";
 import {addPowerUps, changeMapAfterExplosion, generateLevel, playerPositions, template, types} from "./game_map.js";
 import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
-// import { CollisionMap } from "./collision_map.js";
-import { checkCollision2, placeOnEdge } from './collision_map.js';
+import checkCollision from './collision_map.js';
 
 Array.prototype.remove = function () {
     let what, a = arguments, L = a.length, ax;
@@ -58,36 +57,9 @@ class Player {
         this.speed *= 1.10;
     }
 
-    // setPosition2(direction) {
-    //     if (direction != null) this.direction = direction;
-    //     this.oldPosition = this.position
-    //     let position = this.position;
-    //     switch (this.direction) {
-    //         case DIRECTION.DOWN: {
-    //             position.y += this.speed;
-    //             break;
-    //         }
-    //         case DIRECTION.UP: {
-    //             position.y -= this.speed;
-    //             break;
-    //         }
-    //         case DIRECTION.LEFT: {
-    //             position.x -= this.speed;
-    //             break;
-    //         }
-    //         case DIRECTION.RIGHT: {
-    //             position.x += this.speed;
-    //             break;
-    //         }
-    //     }
-    //     console.log("setting position to ", position);
-    //     return position
-    // }
-    
-    setPosition3(map, direction) {
+    setPosition(map, direction) {
         if (direction != null) this.direction = direction;
-        console.log("Current player position ", this.position , "DIRECTION : ", this.direction);
-        this.newPosition  = this.position;
+        this.newPosition = Object.assign({}, this.position);
         switch (this.direction) {
             case DIRECTION.DOWN: {
                 this.newPosition.y = this.position.y + this.speed;
@@ -106,31 +78,13 @@ class Player {
                 break;
             }
         }
-        console.log("setting newPosition to ", this.newPosition);
-        return checkCollision2(map, this.newPosition, this.direction) ? this.newPosition : this.position;
+        if (checkCollision(map, this.newPosition, this.direction)) {
+            this.position = this.newPosition
+            return this.newPosition
+        }else{
+            this.position;
+        }
     }
-
-    getCurrentPosition(){
-        return this.position
-    }
-
-    // setPosition(direction) {
-    //     if (direction != null) this.direction = direction;
-    //     switch (this.direction) {
-    //         case DIRECTION.DOWN: {
-    //             return this.position.y += this.speed;
-    //         }
-    //         case DIRECTION.UP: {
-    //             return this.position.y -= this.speed;
-    //         }
-    //         case DIRECTION.LEFT: {
-    //             return this.position.x -= this.speed;
-    //         }
-    //         case DIRECTION.RIGHT: {
-    //             return this.position.x += this.speed;
-    //         }
-    //     }
-    // }
 
     decreaseHealth() {
         return this.health -= 1
@@ -176,7 +130,6 @@ class Game {
         addPowerUps(room["map"]);
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
-        // room.collisionMap = new CollisionMap(this.server.get(roomId).map);
         return {roomId, name}
     }
 
@@ -214,7 +167,7 @@ class Game {
 
 export const 
     server = (port) => {
-        const fps = 1;
+        const fps = 60;
         const ws = new WebSocketServer({port});
         const game = new Game();
         let trackedBombs = trackBombs()
@@ -225,40 +178,19 @@ export const
                 case SET_POSITION : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {move, direction} = args
-                    // const player = game.server.get(roomId).players[name];
-                    // const player_direction = player.direction;
-                    // console.log(`PLAYER POSiTIOn : ${player.position.x}, ${player.position.y}`);
-                    let map = game.server.get(roomId).map;
+
                     if (move) {
                         if (!playerMoving.includes(playerIP)) playerMoving.push(playerIP)
                     } else {
                         playerMoving.remove(playerIP)
                     }
 
-                    return game.server.get(roomId).players[name].setPosition3(map, direction);
-
-                    // if (checkCollision2(map, player.position, player_direction) && move) {
-                    //     if (!playerMoving.includes(playerIP)) playerMoving.push(playerIP);
-                    //     return game.server.get(roomId).players[name].setPosition2(direction);
-                    // } else {
-                    //     if (move){
-                    //         return placeOnEdge(map, player);
-                    //     }
-                    //     playerMoving.remove(playerIP);
-                    //     return player.position
-                    // }   
-
+                    return game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map, direction);
                 }
 
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
-
-                    //set Initial player position
-                    // const count = game.server.get(roomId).numberOfPlayers;
-                    // const obj = playerPositions[count];
-                    // const cube = 50
-                    // game.server.get(roomId)[name].setPosition(obj.x * cube, obj.y * cube);
                     return {roomId, name}
                 }
                 case DECREASE_HEALTH: {

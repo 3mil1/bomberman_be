@@ -6,3 +6,9 @@ export const SET_POWER = 'setPower';
 export const DECREASE_HEALTH = 'decreaseHealth';
 export const SET_POSITION = 'setPosition';
 export const NEW_MESSAGE = 'newMessage'
+
+//player status
+export const ACTIVE = 'active';
+export const WINNER = 'winner';
+export const LOOSER = 'looser';
+export const TIE = 'tie';

@@ -1,6 +1,15 @@
 import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
-import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
+import {
+    ACTIVE,
+    DECREASE_HEALTH,
+    NEW_MESSAGE,
+    SET_BOMB,
+    SET_PLAYER,
+    SET_POSITION,
+    SET_POWER,
+    START_GAME
+} from "./constants.js";
 import checkCollision from './collision_map.js';
 
 Array.prototype.remove = function () {
@@ -53,6 +62,7 @@ class Player {
         this.bombCount = 1;
         this.direction = DIRECTION.DOWN;
         this.flame = 1;
+        this.status = ACTIVE;
     }
 
     #speedUp() {

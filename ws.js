@@ -1,10 +1,5 @@
 import {WebSocketServer} from "ws";
-import {
-    GameMap,
-    playerPositions,
-    template,
-    types
-} from "./game_map.js";
+import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
 import checkCollision from './collision_map.js';
 
@@ -50,70 +45,70 @@ const DIRECTION = {
 };
 
 class Player {
-  constructor({ x, y }) {
-    this.position = { x, y };
-    this.speed = 1;
-    this.health = 3;
-    this.power = new Set();
-    this.bombCount = 1;
-    this.direction = DIRECTION.DOWN;
-    this.flame = 1;
-  }
-
-  #speedUp() {
-    this.speed *= 1.1;
-  }
-
-  setPosition(map, direction) {
-      if (direction != null) this.direction = direction;
-      let newPosition = Object.assign({}, this.position);
-      switch (this.direction) {
-          case DIRECTION.DOWN: {
-              newPosition.y = this.position.y + this.speed;
-              break;
-          }
-          case DIRECTION.UP: {
-              newPosition.y = this.position.y - this.speed;
-              break;
-          }
-          case DIRECTION.LEFT: {
-              newPosition.x = this.position.x - this.speed;
-              break;
-          }
-          case DIRECTION.RIGHT: {
-              newPosition.x = this.position.x + this.speed;
-              break;
-          }
-      }
-      if (checkCollision(map, newPosition, this.direction)) {
-          this.position = newPosition;
-          return newPosition;
-      }
-  }
-
-  getCell() {
-      const x = Math.round(this.position.x / 50);
-      const y = Math.round(this.position.y / 50);
-      return {x, y};
-  }
-
-  decreaseHealth() {
-    return (this.health -= 1);
-  }
-
-  setPower(power) {
-    switch (power) {
-      case 'speedUp': {
-        return this.#speedUp();
-      }
-      case 'bombIncrease': {
-        return (this.bombCount += 1);
-      }
-      case 'flameIncrease': {
-        return (this.flame += 1);
-      }
+    constructor({x, y}) {
+        this.position = {x, y};
+        this.speed = 1;
+        this.health = 3;
+        this.power = new Set();
+        this.bombCount = 1;
+        this.direction = DIRECTION.DOWN;
+        this.flame = 1;
     }
-  }
+
+    #speedUp() {
+        this.speed *= 1.1;
+    }
+
+    setPosition(map, direction) {
+        if (direction != null) this.direction = direction;
+        let newPosition = Object.assign({}, this.position);
+        switch (this.direction) {
+            case DIRECTION.DOWN: {
+                newPosition.y = this.position.y + this.speed;
+                break;
+            }
+            case DIRECTION.UP: {
+                newPosition.y = this.position.y - this.speed;
+                break;
+            }
+            case DIRECTION.LEFT: {
+                newPosition.x = this.position.x - this.speed;
+                break;
+            }
+            case DIRECTION.RIGHT: {
+                newPosition.x = this.position.x + this.speed;
+                break;
+            }
+        }
+        if (checkCollision(map, newPosition, this.direction)) {
+            this.position = newPosition;
+            return newPosition;
+        }
+    }
+
+    getCell() {
+        const x = Math.round(this.position.x / 50);
+        const y = Math.round(this.position.y / 50);
+        return {x, y};
+    }
+
+    decreaseHealth() {
+        return (this.health -= 1);
+    }
+
+    setPower(power) {
+        switch (power) {
+            case 'speedUp': {
+                return this.#speedUp();
+            }
+            case 'bombIncrease': {
+                return (this.bombCount += 1);
+            }
+            case 'flameIncrease': {
+                return (this.flame += 1);
+            }
+        }
+    }
 }
 
 class Game {
@@ -147,13 +142,14 @@ class Game {
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
 
-            const x = Math.round(room.players[name].position.x / 50);
-            const y = Math.round(room.players[name].position.y / 50);
-if ( room.players[name].bombCount > 0 ) {
-                    room["map"].template[y][x] = types.bomb;
+        const x = Math.round(room.players[name].position.x / 50);
+        const y = Math.round(room.players[name].position.y / 50);
+        if (room.players[name].bombCount > 0) {
+            room["map"].template[y][x] = types.bomb;
             room.players[name].bombCount--
             return {x, y, "timer": 5000}
-        }return {x, y, "timer": 0};
+        }
+        return {x, y, "timer": 0};
     }
 
     detonateBomb(x, y, roomId, name) {
@@ -165,7 +161,7 @@ if ( room.players[name].bombCount > 0 ) {
         Object.keys(room.players).forEach((p) => {
             let player = room.players[p];
             const {x, y} = player.getCell();
-            if(room["map"].template[y][x] === types.detonatedBomb) {
+            if (room["map"].template[y][x] === types.detonatedBomb) {
                 player.decreaseHealth();
             }
         })
@@ -290,7 +286,7 @@ export const
                 const ip = client["_socket"]["_peername"].address
                 const roomId = matchPlayerIPWithRoomId[ip].roomId
                 if (!roomId) return
-                client.send(JSON.stringify({...obj[roomId], map:obj[roomId]['map'].template}), {binary: false});
+                client.send(JSON.stringify({...obj[roomId], map: obj[roomId]['map'].template}), {binary: false});
             });
         };
 

@@ -65,30 +65,36 @@ class Player {
   }
 
   setPosition(map, direction) {
-    if (direction != null) this.direction = direction;
-    let newPosition = Object.assign({}, this.position);
-    switch (this.direction) {
-      case DIRECTION.DOWN: {
-        newPosition.y = this.position.y + this.speed;
-        break;
+      if (direction != null) this.direction = direction;
+      let newPosition = Object.assign({}, this.position);
+      switch (this.direction) {
+          case DIRECTION.DOWN: {
+              newPosition.y = this.position.y + this.speed;
+              break;
+          }
+          case DIRECTION.UP: {
+              newPosition.y = this.position.y - this.speed;
+              break;
+          }
+          case DIRECTION.LEFT: {
+              newPosition.x = this.position.x - this.speed;
+              break;
+          }
+          case DIRECTION.RIGHT: {
+              newPosition.x = this.position.x + this.speed;
+              break;
+          }
       }
-      case DIRECTION.UP: {
-        newPosition.y = this.position.y - this.speed;
-        break;
+      if (checkCollision(map, newPosition, this.direction)) {
+          this.position = newPosition;
+          return newPosition;
       }
-      case DIRECTION.LEFT: {
-        newPosition.x = this.position.x - this.speed;
-        break;
-      }
-      case DIRECTION.RIGHT: {
-        newPosition.x = this.position.x + this.speed;
-        break;
-      }
-    }
-    if (checkCollision(map, newPosition, this.direction)) {
-      this.position = newPosition;
-      return newPosition;
-    }
+  }
+
+  getCell() {
+      const x = Math.round(this.position.x / 50);
+      const y = Math.round(this.position.y / 50);
+      return {x, y};
   }
 
   decreaseHealth() {
@@ -156,6 +162,13 @@ if ( room.players[name].bombCount > 0 ) {
         player.bombCount++;
         let flameRadius = player.flame;
         room["map"].explosion(x, y, flameRadius);
+        Object.keys(room.players).forEach((p) => {
+            let player = room.players[p];
+            const {x, y} = player.getCell();
+            if(room["map"].template[y][x] === types.detonatedBomb) {
+                player.decreaseHealth();
+            }
+        })
     }
 
     changeMap(x, y, roomId, name) {

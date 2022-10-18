@@ -1,14 +1,15 @@
 import {WebSocketServer} from "ws";
-import {GameMap, playerPositions, template, types} from "./game_map.js";
+import {GameMap, playerPositions, powerUps, template, types} from "./game_map.js";
 import {
     ACTIVE,
-    DECREASE_HEALTH,
+    LOOSER,
     NEW_MESSAGE,
     SET_BOMB,
     SET_PLAYER,
     SET_POSITION,
     SET_POWER,
-    START_GAME
+    START_GAME,
+    TIE, WINNER
 } from "./constants.js";
 import checkCollision from './collision_map.js';
 
@@ -58,7 +59,7 @@ class Player {
         this.position = {x, y};
         this.speed = 1;
         this.health = 3;
-        this.power = new Set();
+        // this.power = new Set();
         this.bombCount = 1;
         this.direction = DIRECTION.DOWN;
         this.flame = 1;
@@ -103,18 +104,21 @@ class Player {
     }
 
     decreaseHealth() {
-        return (this.health -= 1);
+        this.health -= 1;
+        if (this.health === 0) {
+            this.status = LOOSER;
+        }
     }
 
     setPower(power) {
         switch (power) {
-            case 'speedUp': {
+            case types.speedUp: {
                 return this.#speedUp();
             }
-            case 'bombIncrease': {
+            case types.bombNumber: {
                 return (this.bombCount += 1);
             }
-            case 'flameIncrease': {
+            case types.bombRadius: {
                 return (this.flame += 1);
             }
         }
@@ -134,6 +138,9 @@ class Game {
         this.server.get(roomId)["numberOfPlayers"] = 0
         this.server.get(roomId)["messages"] = [];
         this.server.get(roomId)["players"] = {};
+        this.server.get(roomId)["gameOver"] = false;
+        this.server.get(roomId)["20SecTimer"] = 0;
+        this.server.get(roomId)["10SecTimer"] = 0;
         return roomId
     }
 
@@ -146,6 +153,7 @@ class Game {
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
+
         return {roomId, name}
     }
 
@@ -157,7 +165,7 @@ class Game {
         if (room.players[name].bombCount > 0) {
             room["map"].template[y][x] = types.bomb;
             room.players[name].bombCount--
-            return {x, y, "timer": 5000}
+            return {x, y, "timer": 3000}
         }
         return {x, y, "timer": 0};
     }
@@ -167,14 +175,41 @@ class Game {
         let player = room.players[name];
         player.bombCount++;
         let flameRadius = player.flame;
+
         room["map"].explosion(x, y, flameRadius);
+
+        this.#changeStats(room);
+    }
+
+    #changeStats(room) {
         Object.keys(room.players).forEach((p) => {
             let player = room.players[p];
             const {x, y} = player.getCell();
             if (room["map"].template[y][x] === types.detonatedBomb) {
                 player.decreaseHealth();
             }
-        })
+        });
+        const leftPlayers = Object.keys(room.players).filter((p) => {
+            const player = room.players[p];
+            if (player.health > 0) {
+                return player;
+            }
+        });
+        switch (leftPlayers.length) {
+            case 0:
+                Object.keys(room.players).forEach((player) => {
+                    room.players[player].status = TIE;
+                    room.numberOfPlayers = 0;
+                    room['gameOver'] = true;
+                });
+                break;
+            case 1:
+                room.players[leftPlayers[0]].status = WINNER;
+                room['gameOver'] = true;
+                break;
+            default:
+                room.numberOfPlayers = leftPlayers.length;
+        }
     }
 
     changeMap(x, y, roomId, name) {
@@ -182,6 +217,19 @@ class Game {
         let player = room.players[name];
         let flameRadius = player.flame;
         room["map"].changeMapAfterExplosion(x, y, flameRadius);
+    }
+
+    checkForPowerUps(name, roomId) {
+        const room = this.server.get(roomId);
+        let player = room.players[name];
+        const {x, y} = player.getCell();
+        const gameMap = room["map"];
+        const power = gameMap.hasPowerUp(x, y)
+        if (power) {
+            player.setPower(power);
+            gameMap.deletePowerUp(x, y);
+            // console.log("after power added", player);
+        }
     }
 
     startGame(roomId) {
@@ -217,7 +265,9 @@ export const
                         playerMoving.remove(playerIP)
                     }
 
-                    return game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map.template, direction);
+                    const newPosition = game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map.template, direction);
+                    game.checkForPowerUps(name, roomId);
+                    return newPosition;
                 }
 
                 case SET_PLAYER : {
@@ -225,16 +275,7 @@ export const
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
                     return {roomId, name}
                 }
-                case DECREASE_HEALTH: {
-                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    //add a check for 0 lives
-                    return game.server.get(roomId).players[name].decreaseHealth()
-                }
-                case SET_POWER: {
-                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    const {power} = args
-                    return game.server.get(roomId).players[name].setPower(power)
-                }
+
                 case SET_BOMB: {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {x, y, timer} = game.setBomb(name, roomId)
@@ -248,9 +289,12 @@ export const
                 case NEW_MESSAGE : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {text} = args;
-                    game.addMessage(name, text, roomId);
+                    return game.addMessage(name, text, roomId);
                     //add broadcast
                 }
+                default:
+                    console.log("Unknown case");
+                    return undefined;
             }
         }
 
@@ -264,7 +308,7 @@ export const
 
                 const fromCmd = commands(method, args, playerIP)
 
-                if (method === 'setPlayer') {
+                if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
                     connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
@@ -273,7 +317,8 @@ export const
                 if (roomId) {
                     const gameClass = game.server
                     const gameObj = Object.fromEntries(gameClass);
-                    if (gameObj[roomId].started) animate(gameObj, playerIP, connection);
+                    if (gameObj[roomId].started && !gameObj[roomId].gameOver) animate(gameObj, playerIP, connection);
+                    //add case for game over
                 }
             });
         })

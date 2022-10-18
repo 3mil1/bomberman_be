@@ -12,6 +12,8 @@ export const types = {
     detonatedBomb: 'd',
 }
 
+export const powerUps = [types.speedUp, types.bombRadius, types.bombNumber];
+
 export class GameMap {
     constructor(template) {
         this.template = template;
@@ -32,7 +34,7 @@ export class GameMap {
     }
 
     addPowerUps() {
-        [types.speedUp, types.bombRadius, types.bombNumber].forEach(t => {
+        powerUps.forEach(t => {
             this.#addPowerUp(t);
         })
     }
@@ -97,12 +99,20 @@ export class GameMap {
                 let key = `${y}:${x}`;
                 if (this.powerUps[key]) {
                     type = this.powerUps[key];
-                    this.powerUps[key] = null;
+                    this.powerUps[key] = null;//надо чтоб не поставить два раза
                 }
                return type;
             default:
                 return this.template[y][x];
         }
+    }
+
+    hasPowerUp(x, y) {
+        return powerUps.includes(this.template[y][x]) ? this.template[y][x] : null ;
+    }
+
+    deletePowerUp(x, y) {
+        this.template[y][x] = types.blank;
     }
 
 }

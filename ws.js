@@ -1,18 +1,17 @@
 import {WebSocketServer} from "ws";
-import {addPowerUps, changeMapAfterExplosion, generateLevel, playerPositions, template, types} from "./game_map.js";
-import {DECREASE_HEALTH, NEW_MESSAGE, SET_BOMB, SET_PLAYER, SET_POSITION, SET_POWER, START_GAME} from "./constants.js";
+import {GameMap, playerPositions, powerUps, template, types} from "./game_map.js";
+import {
+    ACTIVE,
+    LOOSER,
+    NEW_MESSAGE,
+    SET_BOMB,
+    SET_PLAYER,
+    SET_POSITION,
+    SET_POWER,
+    START_GAME,
+    TIE, WINNER
+} from "./constants.js";
 import checkCollision from './collision_map.js';
-
-Array.prototype.remove = function () {
-    let what, a = arguments, L = a.length, ax;
-    while (L && this.length) {
-        what = a[--L];
-        while ((ax = this.indexOf(what)) !== -1) {
-            this.splice(ax, 1);
-        }
-    }
-    return this;
-};
 
 Array.prototype.remove = function () {
     let what, a = arguments, L = a.length, ax;
@@ -32,12 +31,15 @@ const trackBombs = () => {
     const trackedBombs = {}
 
     return {
-        setCallback: (callback) => {
+        setCallback: (afterPlace, afterExplosion) => {
             return {
                 placeBomb: (x, y, timer, roomId, name) => {
                     trackedBombs[`${x}:${y}`] = "someValue"//name?
                     setTimeout(() => {
-                        callback(x, y, roomId, name)
+                        afterPlace(x, y, roomId, name);
+                        setTimeout(() => {
+                            afterExplosion(x, y, roomId, name);
+                        }, 1000);
                     }, timer);
                 }
             }
@@ -57,61 +59,69 @@ class Player {
         this.position = {x, y};
         this.speed = 1;
         this.health = 3;
-        this.power = new Set();
+        // this.power = new Set();
         this.bombCount = 1;
         this.direction = DIRECTION.DOWN;
         this.flame = 1;
         this.newPosition = {x, y}
         this.moving = false;
+        this.status = ACTIVE;
     }
 
     #speedUp() {
-        this.speed *= 1.10;
+        this.speed *= 1.1;
     }
 
     setPosition(map, direction) {
         if (direction != null) this.direction = direction;
-        this.newPosition = Object.assign({}, this.position);
+        let newPosition = Object.assign({}, this.position);
         switch (this.direction) {
             case DIRECTION.DOWN: {
-                this.newPosition.y = this.position.y + this.speed;
+                newPosition.y = this.position.y + this.speed;
                 break;
             }
             case DIRECTION.UP: {
-                this.newPosition.y = this.position.y - this.speed;
+                newPosition.y = this.position.y - this.speed;
                 break;
             }
             case DIRECTION.LEFT: {
-                this.newPosition.x = this.position.x - this.speed;
+                newPosition.x = this.position.x - this.speed;
                 break;
             }
             case DIRECTION.RIGHT: {
-                this.newPosition.x = this.position.x + this.speed;
+                newPosition.x = this.position.x + this.speed;
                 break;
             }
         }
-        if (checkCollision(map, this.newPosition, this.direction)) {
-            this.position = this.newPosition
-            return this.newPosition
-        }else{
-            this.position;
+        if (checkCollision(map, newPosition, this.direction)) {
+            this.position = newPosition;
+            return newPosition;
         }
     }
 
+    getCell() {
+        const x = Math.round(this.position.x / 50);
+        const y = Math.round(this.position.y / 50);
+        return {x, y};
+    }
+
     decreaseHealth() {
-        return this.health -= 1
+        this.health -= 1;
+        if (this.health === 0) {
+            this.status = LOOSER;
+        }
     }
 
     setPower(power) {
         switch (power) {
-            case "speedUp": {
+            case types.speedUp: {
                 return this.#speedUp();
             }
-            case "bombIncrease": {
-                return this.bombCount += 1;
+            case types.bombNumber: {
+                return (this.bombCount += 1);
             }
-            case "flameIncrease": {
-                return this.flame += 1;
+            case types.bombRadius: {
+                return (this.flame += 1);
             }
         }
     }
@@ -125,11 +135,14 @@ class Game {
     #setRoom() {
         const roomId = uuidv4()
         this.server.set(roomId, {})
-        this.server.get(roomId)["map"] = generateLevel(template)
+        this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
         this.server.get(roomId)["numberOfPlayers"] = 0
         this.server.get(roomId)["messages"] = [];
         this.server.get(roomId)["players"] = {};
+        this.server.get(roomId)["gameOver"] = false;
+        this.server.get(roomId)["20SecTimer"] = 0;
+        this.server.get(roomId)["10SecTimer"] = 0;
         return roomId
     }
 
@@ -139,21 +152,24 @@ class Game {
         }
         const room = this.server.get(roomId)
         if (!room) return //что возвращается фронту в этом случае?
-        addPowerUps(room["map"]);
+        room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
+
         return {roomId, name}
     }
 
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
+
+        const x = Math.round(room.players[name].position.x / 50);
+        const y = Math.round(room.players[name].position.y / 50);
         if (room.players[name].bombCount > 0) {
-            const x = Math.round(room.players[name].position.x / 50);
-            const y = Math.round(room.players[name].position.y / 50);
-            room["map"][y][x] = types.bomb;
+            room["map"].template[y][x] = types.bomb;
             room.players[name].bombCount--
-            return {x, y, "timer": 5000}
+            return {x, y, "timer": 3000}
         }
+        return {x, y, "timer": 0};
     }
 
     detonateBomb(x, y, roomId, name) {
@@ -161,7 +177,61 @@ class Game {
         let player = room.players[name];
         player.bombCount++;
         let flameRadius = player.flame;
-        room["map"] = changeMapAfterExplosion(x, y, flameRadius, room.map);
+
+        room["map"].explosion(x, y, flameRadius);
+
+        this.#changeStats(room);
+    }
+
+    #changeStats(room) {
+        Object.keys(room.players).forEach((p) => {
+            let player = room.players[p];
+            const {x, y} = player.getCell();
+            if (room["map"].template[y][x] === types.detonatedBomb) {
+                player.decreaseHealth();
+            }
+        });
+        const leftPlayers = Object.keys(room.players).filter((p) => {
+            const player = room.players[p];
+            if (player.health > 0) {
+                return player;
+            }
+        });
+        switch (leftPlayers.length) {
+            case 0:
+                Object.keys(room.players).forEach((player) => {
+                    room.players[player].status = TIE;
+                    room.numberOfPlayers = 0;
+                    room['gameOver'] = true;
+                });
+                break;
+            case 1:
+                room.players[leftPlayers[0]].status = WINNER;
+                room['gameOver'] = true;
+                break;
+            default:
+                room.numberOfPlayers = leftPlayers.length;
+        }
+    }
+
+    changeMap(x, y, roomId, name) {
+        const room = this.server.get(roomId);
+        let player = room.players[name];
+        let flameRadius = player.flame;
+        room["map"].changeMapAfterExplosion(x, y, flameRadius);
+    }
+
+    checkForPowerUps(name, roomId) {
+        const room = this.server.get(roomId);
+        let player = room.players[name];
+        const {x, y} = player.getCell();
+        const gameMap = room["map"];
+        const power = gameMap.hasPowerUp(x, y)
+        if (power) {
+            player.setPower(power);
+            gameMap.deletePowerUp(x, y);
+            // console.log("after power added", player);
+        }
     }
 
     startGame(roomId) {
@@ -177,7 +247,7 @@ class Game {
     }
 }
 
-export const 
+export const
     server = (port) => {
         const fps = 60;
         const ws = new WebSocketServer({port});
@@ -200,7 +270,9 @@ export const
                         playerMoving.remove(playerIP)
                     }
 
-                    return game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map, direction);
+                    const newPosition = game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map.template, direction);
+                    game.checkForPowerUps(name, roomId);
+                    return newPosition;
                 }
 
                 case SET_PLAYER : {
@@ -208,22 +280,11 @@ export const
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
                     return {roomId, name}
                 }
-                case DECREASE_HEALTH: {
-                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    //add a check for 0 lives
-                    return game.server.get(roomId).players[name].decreaseHealth()
-                }
-                case SET_POWER: {
-                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    const {power} = args
-                    return game.server.get(roomId).players[name].setPower(power)
-                }
+
                 case SET_BOMB: {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    //???
-                    console.log("Got here");
                     const {x, y, timer} = game.setBomb(name, roomId)
-                    startTrackingBomb.placeBomb(x, y, timer, roomId, name) //нужно передавать имя игрока, который помещает бомбу
+                    if (timer > 0) startTrackingBomb.placeBomb(x, y, timer, roomId, name);
                     return {x, y}
                 }
                 case START_GAME: {
@@ -233,9 +294,12 @@ export const
                 case NEW_MESSAGE : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {text} = args;
-                    game.addMessage(name, text, roomId);
+                    return game.addMessage(name, text, roomId);
                     //add broadcast
                 }
+                default:
+                    console.log("Unknown case");
+                    return undefined;
             }
         }
 
@@ -246,9 +310,10 @@ export const
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
 
+
                 const fromCmd = commands(method, args, playerIP)
 
-                if (method === 'setPlayer') {
+                if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
                     connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
@@ -257,7 +322,8 @@ export const
                 if (roomId) {
                     const gameClass = game.server
                     const gameObj = Object.fromEntries(gameClass);
-                    if (gameObj[roomId].started) animate(gameObj, playerIP, connection);
+                    if (gameObj[roomId].started && !gameObj[roomId].gameOver) animate(gameObj, playerIP, connection);
+                    //add case for game over
                 }
             });
         })
@@ -270,7 +336,7 @@ export const
             })
 
             setTimeout(() => {
-                startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game))
+                startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game), game.changeMap.bind(game))
                 animate(obj)
             }, 1000 / fps);
         }
@@ -280,7 +346,7 @@ export const
                 const ip = client["_socket"]["_peername"].address
                 const roomId = matchPlayerIPWithRoomId[ip].roomId
                 if (!roomId) return
-                client.send(JSON.stringify(obj[roomId]), {binary: false});
+                client.send(JSON.stringify({...obj[roomId], map: obj[roomId]['map'].template}), {binary: false});
             });
         };
 

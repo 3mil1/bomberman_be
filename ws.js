@@ -63,6 +63,8 @@ class Player {
         this.bombCount = 1;
         this.direction = DIRECTION.DOWN;
         this.flame = 1;
+        this.newPosition = {x, y}
+        this.moving = false;
         this.status = ACTIVE;
     }
 
@@ -258,10 +260,13 @@ export const
                 case SET_POSITION : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {move, direction} = args
+                    const player = game.server.get(roomId).players[name]
 
                     if (move) {
+                        player.moving = true;
                         if (!playerMoving.includes(playerIP)) playerMoving.push(playerIP)
                     } else {
+                        player.moving = false;
                         playerMoving.remove(playerIP)
                     }
 

@@ -26,7 +26,7 @@ const getBoxValue = (map, coords) => {
   const row_position = Math.floor(coords.y / 50);
   const column_position = Math.floor(coords.x / 50);
   let value = map[row_position][column_position];
-  return value === '.' || value === 'x';
+  return ['.','x','d','b'].includes(value)
 };
 
 export default checkCollision

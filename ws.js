@@ -276,6 +276,7 @@ export const
                 }
 
                 case SET_PLAYER : {
+                    console.log(args)
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
                     return {roomId, name}
@@ -309,7 +310,6 @@ export const
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
-
 
                 const fromCmd = commands(method, args, playerIP)
 

@@ -276,7 +276,6 @@ export const
                 }
 
                 case SET_PLAYER : {
-                    console.log(args)
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
                     return {roomId, name}
@@ -344,9 +343,11 @@ export const
         ws.broadcast = function broadcast(obj) {
             ws.clients.forEach(function each(client) {
                 const ip = client["_socket"]["_peername"].address
-                const roomId = matchPlayerIPWithRoomId[ip].roomId
-                if (!roomId) return
-                client.send(JSON.stringify({...obj[roomId], map: obj[roomId]['map'].template}), {binary: false});
+                // if (matchPlayerIPWithRoomId.hasOwnProperty(ip)) {
+                    const roomId = matchPlayerIPWithRoomId[ip].roomId
+                    if (!roomId) return
+                    client.send(JSON.stringify({...obj[roomId], map: obj[roomId]['map'].template}), {binary: false});
+                // }
             });
         };
 

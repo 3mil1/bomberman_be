@@ -16,7 +16,7 @@ export const powerUps = [types.speedUp, types.bombRadius, types.bombNumber];
 
 export class GameMap {
     constructor(template) {
-        this.template = template;
+        this.template = template.map((arr) => arr.slice());
         this.numRows = this.template.length;
         this.numCols = this.template[0].length;
         this.#generateLevel();

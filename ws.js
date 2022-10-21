@@ -138,7 +138,7 @@ class Game {
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
         this.server.get(roomId)["numberOfPlayers"] = 0
-        this.server.get(roomId)["messages"] = [];
+        this.server.get(roomId)["chat"] = [{"author" : "Bot", "text": "Welcome!", "id": Date.now()}];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
         this.server.get(roomId)["20SecTimer"] = 0;
@@ -240,9 +240,8 @@ class Game {
 
     //Messages
     addMessage(name, text, roomId) {
-        this.server.get(roomId).messages.push(
-            name,
-            text,
+        return this.server.get(roomId).chat.push(
+            {"author": name, "text": text, "id": Date.now()}
         )
     }
 }
@@ -276,7 +275,7 @@ export const
                 }
 
                 case SET_PLAYER : {
-                    console.log(args)
+                    // console.log(args)
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
                     return {roomId, name}
@@ -293,18 +292,20 @@ export const
                     return game.startGame(roomId)
                 }
                 case NEW_MESSAGE : {
+                    console.log("UUS SÕNUM", args)
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    const {text} = args;
-                    return game.addMessage(name, text, roomId);
-                    //add broadcast
+                    // const {text} = args;
+                    return game.addMessage(name, args, roomId);
                 }
                 default:
-                    console.log("Unknown case");
+                    // console.log("Unknown case");
                     return undefined;
             }
         }
 
         ws.on('connection', (connection, req) => {
+
+            // client.send(JSON.stringify({...obj[roomId], chat: obj[roomId].chat}), {binary: false});
 
             const playerIP = req.socket.remoteAddress;
             connection.on('message', async (message) => {
@@ -344,12 +345,12 @@ export const
         ws.broadcast = function broadcast(obj) {
             ws.clients.forEach(function each(client) {
                 const ip = client["_socket"]["_peername"].address
-                console.log("matchPlayerIPWithRoomId", matchPlayerIPWithRoomId)
-                console.log()
-                console.log("matchPlayerIPWithRoomId[ip]",matchPlayerIPWithRoomId[ip])
+                // console.log("matchPlayerIPWithRoomId", matchPlayerIPWithRoomId)
+                // console.log()
+                // console.log("matchPlayerIPWithRoomId[ip]",matchPlayerIPWithRoomId[ip])
                 const roomId = matchPlayerIPWithRoomId[ip].roomId
                 if (!roomId) return
-                client.send(JSON.stringify({...obj[roomId], map: obj[roomId]['map'].template}), {binary: false});
+                client.send(JSON.stringify({...obj[roomId], map: obj[roomId].map.template, chat: obj[roomId].chat}), {binary: false});
             });
         };
 

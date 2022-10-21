@@ -139,7 +139,7 @@ class Game {
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
         this.server.get(roomId)["numberOfPlayers"] = 0
-        this.server.get(roomId)["chat"] = [{"author" : "Bot", "text": "Welcome!", "id": Date.now()}];
+        this.server.get(roomId)["chat"] = [{"author": "Bot", "text": "Welcome!", "id": Date.now()}];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
         this.server.get(roomId)["20SecTimer"] = 0;
@@ -162,14 +162,11 @@ class Game {
 
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
-        console.log()
-        console.log("ROOM: ", room)
-        console.log("ROOMID: ", roomId)
-        console.log()
         const x = Math.round(room.players[name].position.x / 50);
         const y = Math.round(room.players[name].position.y / 50);
         if (room.players[name].bombCount > 0) {
             room["map"].template[y][x] = types.bomb;
+            console.log(room["map"])
             room.players[name].bombCount--
             return {x, y, "timer": 3000}
         }

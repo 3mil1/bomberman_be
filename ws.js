@@ -177,7 +177,6 @@ class Game {
 
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
-        console.log("set bomb", room);
         const x = Math.round(room.players[name].position.x / 50);
         const y = Math.round(room.players[name].position.y / 50);
         if (room.players[name].bombCount > 0) {
@@ -190,8 +189,6 @@ class Game {
 
     detonateBomb(x, y, roomId, name) {
         const room = this.server.get(roomId);
-        console.log("detonate bomb", roomId, name);
-        console.log("detonate bomb", room);
         let player = room.players[name];
         player.bombCount++;
         let flameRadius = player.flame;
@@ -295,13 +292,11 @@ export const
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
-                    console.log("case set player", roomId, name, playerIP);
                     return {roomId, name}
                 }
 
                 case SET_BOMB: {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
-                    console.log("Set bomb", roomId, name);
                     const {x, y, timer} = game.setBomb(name, roomId)
                     if (timer > 0) startTrackingBomb.placeBomb(x, y, timer, roomId, name);
                     return {x, y}
@@ -344,7 +339,6 @@ export const
 
                 if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
-                    console.log("Set player", roomId, name);
                     connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
                 //

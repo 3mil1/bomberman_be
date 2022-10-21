@@ -26,6 +26,7 @@ Array.prototype.remove = function () {
 
 const matchPlayerIPWithRoomId = {}
 const playerMoving = [];
+let stop = false
 
 const trackBombs = () => {
     const trackedBombs = {}
@@ -275,7 +276,6 @@ export const
                 }
 
                 case SET_PLAYER : {
-                    // console.log(args)
                     const {roomId, name} = game.setPlayer(args)
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
                     return {roomId, name}
@@ -288,6 +288,7 @@ export const
                     return {x, y}
                 }
                 case START_GAME: {
+                    stop = false
                     const {roomId} = args
                     return game.startGame(roomId)
                 }
@@ -296,6 +297,15 @@ export const
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     // const {text} = args;
                     return game.addMessage(name, args, roomId);
+                }
+                case "CLOSE_CONNECTION": {
+                    const {roomId} = matchPlayerIPWithRoomId[playerIP]
+                    delete matchPlayerIPWithRoomId[playerIP]
+                    if (game.server.get(roomId).numberOfPlayers === 1) {
+                        delete game.server.delete(roomId)
+                    }
+                    stop = true
+                    return
                 }
                 default:
                     // console.log("Unknown case");
@@ -323,6 +333,7 @@ export const
                 if (roomId) {
                     const gameClass = game.server
                     const gameObj = Object.fromEntries(gameClass);
+                    console.log("GAME OBJ", gameObj)
                     if (gameObj[roomId].started && !gameObj[roomId].gameOver) animate(gameObj, playerIP, connection);
                     //add case for game over
                 }
@@ -336,26 +347,35 @@ export const
                 commands('setPosition', {move: true, direction: null}, ip)
             })
 
-            setTimeout(() => {
+            let gameLoop = setTimeout(() => {
                 startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game), game.changeMap.bind(game))
                 animate(obj)
             }, 1000 / fps);
+
+            if (stop) {
+                clearTimeout(gameLoop)
+            }
         }
 
         ws.broadcast = function broadcast(obj) {
             ws.clients.forEach(function each(client) {
                 const ip = client["_socket"]["_peername"].address
-                // console.log("matchPlayerIPWithRoomId", matchPlayerIPWithRoomId)
-                // console.log()
-                // console.log("matchPlayerIPWithRoomId[ip]",matchPlayerIPWithRoomId[ip])
-                const roomId = matchPlayerIPWithRoomId[ip].roomId
-                if (!roomId) return
-                client.send(JSON.stringify({...obj[roomId], map: obj[roomId].map.template, chat: obj[roomId].chat}), {binary: false});
+                if (matchPlayerIPWithRoomId.hasOwnProperty(ip)) {
+                    const roomId = matchPlayerIPWithRoomId[ip].roomId
+                    if (!roomId) return
+                    if (obj.hasOwnProperty(roomId)) {
+                        client.send(JSON.stringify({
+                            ...obj[roomId],
+                            map: obj[roomId]['map'].template,
+                            chat: obj[roomId].chat
+                        }), {binary: false});
+                    }
+                }
             });
         };
 
         ws.on('close', () => {
-            // todo
+            console.log("Here")
         })
 
         console.log(`API on port ${port}`);

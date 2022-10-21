@@ -379,7 +379,7 @@ export const
                 client.send(JSON.stringify({
                     ...g,
                     map: g['map'].template,
-                    chat: obj[roomId].chat,
+                    // chat: obj[roomId].chat,
                     timer: g['timer'] ? g['timer'].getTimer() : null
                 }), {binary: false});
             });

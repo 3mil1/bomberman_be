@@ -162,11 +162,20 @@ class Game {
 
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
+        console.log()
         const x = Math.round(room.players[name].position.x / 50);
         const y = Math.round(room.players[name].position.y / 50);
         if (room.players[name].bombCount > 0) {
+            console.log(room)
+            console.log(roomId)
+            let a = this.server.get(roomId)
+            console.log(a["map"])
             room["map"].template[y][x] = types.bomb;
             console.log(room["map"])
+            console.log()
+            console.log()
+            console.log()
+            console.log()
             room.players[name].bombCount--
             return {x, y, "timer": 3000}
         }

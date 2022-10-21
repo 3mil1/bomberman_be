@@ -162,7 +162,10 @@ class Game {
 
     setBomb(name, roomId) {
         const room = this.server.get(roomId)
-
+        console.log()
+        console.log("ROOM: ", room)
+        console.log("ROOMID: ", roomId)
+        console.log()
         const x = Math.round(room.players[name].position.x / 50);
         const y = Math.round(room.players[name].position.y / 50);
         if (room.players[name].bombCount > 0) {

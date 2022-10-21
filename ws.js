@@ -361,7 +361,12 @@ export const
                 if (matchPlayerIPWithRoomId.hasOwnProperty(ip)) {
                     const roomId = matchPlayerIPWithRoomId[ip].roomId
                     if (!roomId) return
-                    client.send(JSON.stringify({...obj[roomId], map: obj[roomId]['map'].template}), {binary: false});
+                    if (obj.hasOwnProperty(roomId)) {
+                        client.send(JSON.stringify({
+                            ...obj[roomId],
+                            map: obj[roomId]['map'].template
+                        }), {binary: false});
+                    }
                 }
             });
         };

@@ -336,7 +336,6 @@ export const
                 if (roomId) {
                     const gameClass = game.server
                     const gameObj = Object.fromEntries(gameClass);
-                    console.log("GAME OBJ", gameObj)
                     if (gameObj[roomId].started && !gameObj[roomId].gameOver) animate(gameObj, playerIP, connection);
                     //add case for game over
                 }

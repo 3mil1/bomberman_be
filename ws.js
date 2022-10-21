@@ -1,17 +1,20 @@
 import {WebSocketServer} from "ws";
-import {GameMap, playerPositions, powerUps, template, types} from "./game_map.js";
+import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
     ACTIVE,
+    COUNTDOWN_TIMER,
     LOOSER,
     NEW_MESSAGE,
     SET_BOMB,
     SET_PLAYER,
     SET_POSITION,
-    SET_POWER,
     START_GAME,
-    TIE, WINNER
+    TIE,
+    WAITING_TIMER,
+    WINNER
 } from "./constants.js";
 import checkCollision from './collision_map.js';
+import {Timer} from "./timer.js";
 
 Array.prototype.remove = function () {
     let what, a = arguments, L = a.length, ax;
@@ -140,12 +143,11 @@ class Game {
         this.server.set(roomId, {})
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
-        this.server.get(roomId)["numberOfPlayers"] = 0
+        this.server.get(roomId)["numberOfPlayers"] = 1//for tests
         this.server.get(roomId)["chat"] = [{"author": "Bot", "text": "Welcome!", "id": Date.now()}];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
-        this.server.get(roomId)["20SecTimer"] = 0;
-        this.server.get(roomId)["10SecTimer"] = 0;
+        this.server.get(roomId)["timer"] = null;
         return roomId
     }
 
@@ -158,8 +160,19 @@ class Game {
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
-
+        if (room.numberOfPlayers > 1) {
+            this.#setTimer(room, roomId);
+        }
         return {roomId, name}
+    }
+
+    #setTimer(room, roomId) {
+        if (!room.timer) {
+            room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {this.startGame(roomId)});
+        }
+        if (room.numberOfPlayers === 4) {
+            room.timer.startCountdownTimer();
+        }
     }
 
     setBomb(name, roomId) {
@@ -237,7 +250,7 @@ class Game {
     }
 
     startGame(roomId) {
-        return this.server.get(roomId).started = true
+        return this.server.get(roomId).started = true;
     }
 
     //Messages
@@ -328,14 +341,14 @@ export const
                     const {roomId, name} = fromCmd
                     connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
-
-                const {roomId} = args
-                if (roomId) {
-                    const gameClass = game.server
-                    const gameObj = Object.fromEntries(gameClass);
-                    if (gameObj[roomId].started && !gameObj[roomId].gameOver) animate(gameObj, playerIP, connection);
-                    //add case for game over
-                }
+                //
+                // const {roomId} = args
+                // if (roomId) {
+                //     const gameClass = game.server
+                //     const gameObj = Object.fromEntries(gameClass);
+                //     if (!gameObj[roomId].gameOver) animate(gameObj, playerIP, connection);
+                //     //add case for game over
+                // }
             });
         })
 
@@ -359,23 +372,23 @@ export const
         ws.broadcast = function broadcast(obj) {
             ws.clients.forEach(function each(client) {
                 const ip = client["_socket"]["_peername"].address
-                if (matchPlayerIPWithRoomId.hasOwnProperty(ip)) {
-                    const roomId = matchPlayerIPWithRoomId[ip].roomId
-                    if (!roomId) return
-                    if (obj.hasOwnProperty(roomId)) {
-                        client.send(JSON.stringify({
-                            ...obj[roomId],
-                            map: obj[roomId]['map'].template,
-                            chat: obj[roomId].chat
-                        }), {binary: false});
-                    }
-                }
+                if (!matchPlayerIPWithRoomId[ip]) return;
+                const roomId = matchPlayerIPWithRoomId[ip].roomId
+                if (!roomId) return
+                const g = game.server.get(roomId);
+                client.send(JSON.stringify({
+                    ...g,
+                    map: g['map'].template,
+                    chat: obj[roomId].chat,
+                    timer: g['timer'] ? g['timer'].getTimer() : null
+                }), {binary: false});
             });
         };
 
         ws.on('close', () => {
             console.log("Here")
         })
+        animate(game);
 
         console.log(`API on port ${port}`);
     };

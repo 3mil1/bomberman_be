@@ -12,3 +12,7 @@ export const ACTIVE = 'active';
 export const WINNER = 'winner';
 export const LOOSER = 'looser';
 export const TIE = 'tie';
+
+//timer
+export const WAITING_TIMER = 5;//for test
+export const COUNTDOWN_TIMER = 3;//for test

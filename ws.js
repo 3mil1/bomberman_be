@@ -138,7 +138,7 @@ class Game {
         this.server.set(roomId, {})
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
-        this.server.get(roomId)["numberOfPlayers"] = 3//for test
+        this.server.get(roomId)["numberOfPlayers"] = 1//for test
         this.server.get(roomId)["messages"] = [];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;

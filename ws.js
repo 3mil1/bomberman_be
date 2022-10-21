@@ -29,17 +29,17 @@ const playerMoving = [];
 let stop = false
 
 const trackBombs = () => {
-    const trackedBombs = {}
+    const trackedBombs = new Set();
 
     return {
         setCallback: (afterPlace, afterExplosion) => {
             return {
                 placeBomb: (x, y, timer, roomId, name) => {
-                    trackedBombs[`${x}:${y}`] = "someValue"//name?
+                    trackedBombs.add(`${x}:${y}`)
                     console.log(trackedBombs)
                     setTimeout(() => {
                         afterPlace(x, y, roomId, name);
-                        delete trackedBombs[`${x}:${y}`]
+                        trackedBombs.delete(`${x}:${y}`)
                         setTimeout(() => {
                             afterExplosion(x, y, roomId, name);
                         }, 1000);

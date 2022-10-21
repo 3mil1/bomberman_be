@@ -39,6 +39,7 @@ const trackBombs = () => {
                     console.log(trackedBombs)
                     setTimeout(() => {
                         afterPlace(x, y, roomId, name);
+                        delete trackedBombs[`${x}:${y}`]
                         setTimeout(() => {
                             afterExplosion(x, y, roomId, name);
                         }, 1000);

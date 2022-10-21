@@ -31,13 +31,13 @@ const matchPlayerIPWithRoomId = {}
 const playerMoving = [];
 
 const trackBombs = () => {
-    const trackedBombs = {}
+    // const trackedBombs = {}
 
     return {
         setCallback: (afterPlace, afterExplosion) => {
             return {
                 placeBomb: (x, y, timer, roomId, name) => {
-                    trackedBombs[`${x}:${y}`] = "someValue"//name?
+                    // trackedBombs[`${x}:${y}`] = "someValue"//name?
                     setTimeout(() => {
                         afterPlace(x, y, roomId, name);
                         setTimeout(() => {
@@ -303,7 +303,6 @@ export const
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     const {text} = args;
                     return game.addMessage(name, text, roomId);
-                    //add broadcast
                 }
                 default:
                     console.log("Unknown case");

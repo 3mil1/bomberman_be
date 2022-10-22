@@ -314,6 +314,7 @@ export const
                     if (game.server.get(roomId).numberOfPlayers === 1) {
                         delete game.server.delete(roomId)
                     }
+                    console.log(game.server)
                     stop = true
                     return
                 }

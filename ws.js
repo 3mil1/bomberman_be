@@ -151,7 +151,7 @@ class Game {
             roomId = this.#setRoom()
         }
         const room = this.server.get(roomId)
-        if (!room) return //что возвращается фронту в этом случае?
+        if (!room) return {roomId: "room does not exist", name}
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
@@ -288,6 +288,7 @@ export const
 
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
+                    if (roomId === "room does not exist") return roomId
                     matchPlayerIPWithRoomId[playerIP] = {roomId, name}
                     return {roomId, name}
                 }

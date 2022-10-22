@@ -1,7 +1,7 @@
 import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
-    ACTIVE,
+    ACTIVE, CLOSE_CONNECTION,
     COUNTDOWN_TIMER,
     LOOSER,
     NEW_MESSAGE,
@@ -242,11 +242,11 @@ class Game {
         if (power) {
             player.setPower(power);
             gameMap.deletePowerUp(x, y);
-            // console.log("after power added", player);
         }
     }
 
     startGame(roomId) {
+        stop = false;
         return this.server.get(roomId).started = true;
     }
 
@@ -299,17 +299,17 @@ export const
                     if (timer > 0) startTrackingBomb.placeBomb(x, y, timer, roomId, name);
                     return {x, y}
                 }
-                case START_GAME: {
-                    stop = false
-                    const {roomId} = args
-                    return game.startGame(roomId)
-                }
+                // case START_GAME: {
+                //     stop = false
+                //     const {roomId} = args
+                //     return game.startGame(roomId)
+                // }
                 case NEW_MESSAGE : {
                     const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
                     // const {text} = args;
                     return game.addMessage(name, args, roomId);
                 }
-                case "CLOSE_CONNECTION": {
+                case CLOSE_CONNECTION: {
                     if (!matchPlayerIPWithRoomId[playerIP]) return
                     const {roomId} = matchPlayerIPWithRoomId[playerIP]
                     delete matchPlayerIPWithRoomId[playerIP]
@@ -382,7 +382,6 @@ export const
                 client.send(JSON.stringify({
                     ...g,
                     map: g['map'].template,
-                    // chat: obj[roomId].chat,
                     timer: g['timer'] ? g['timer'].getTimer() : null
                 }), {binary: false});
             });

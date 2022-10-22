@@ -315,8 +315,9 @@ export const
                     if (game.server.get(roomId).numberOfPlayers === 1) {
                         delete game.server.delete(roomId)
                         stop = true
+                    } else {
+                        game.server.get(roomId)["numberOfPlayers"] -= 1
                     }
-                    game.server.get(roomId)["numberOfPlayers"] -= 1
                     return
                 }
                 default:

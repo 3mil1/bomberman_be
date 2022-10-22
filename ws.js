@@ -319,8 +319,11 @@ export const
                     } else {
                         game.server.get(roomId)["numberOfPlayers"] -= 1
                     }
-
+                    console.log("GAME SERVER:")
                     console.log(game.server)
+                    console.log()
+                    console.log()
+                    console.log()
                     return
                 }
                 default:
@@ -342,6 +345,8 @@ export const
 
                 if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
+                    console.log(roomId, name)
+
                     connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
                 //

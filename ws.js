@@ -32,17 +32,12 @@ const playerMoving = [];
 let stop = false
 
 const trackBombs = () => {
-    const trackedBombs = new Set();
-
     return {
         setCallback: (afterPlace, afterExplosion) => {
             return {
                 placeBomb: (x, y, timer, roomId, name) => {
-                    trackedBombs.add(`${x}:${y}`)
-                    console.log(trackedBombs)
                     setTimeout(() => {
                         afterPlace(x, y, roomId, name);
-                        trackedBombs.delete(`${x}:${y}`)
                         setTimeout(() => {
                             afterExplosion(x, y, roomId, name);
                         }, 1000);
@@ -312,9 +307,11 @@ export const
                     return game.addMessage(name, args, roomId);
                 }
                 case "CLOSE_CONNECTION": {
+                    console.log("CLOSE CONN")
                     const {roomId} = matchPlayerIPWithRoomId[playerIP]
                     delete matchPlayerIPWithRoomId[playerIP]
                     if (game.server.get(roomId).numberOfPlayers === 1) {
+                        "DELETE"
                         delete game.server.delete(roomId)
                     }
                     stop = true

@@ -138,7 +138,7 @@ class Game {
         this.server.set(roomId, {})
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
-        this.server.get(roomId)["numberOfPlayers"] = 1//for tests
+        this.server.get(roomId)["numberOfPlayers"] = 0
         this.server.get(roomId)["chat"] = [{"author": "Bot", "text": "Welcome!", "id": Date.now()}];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
@@ -307,11 +307,11 @@ export const
                     return game.addMessage(name, args, roomId);
                 }
                 case "CLOSE_CONNECTION": {
-                    console.log("CLOSE CONN")
+                    if (!matchPlayerIPWithRoomId[playerIP]) return
                     const {roomId} = matchPlayerIPWithRoomId[playerIP]
                     delete matchPlayerIPWithRoomId[playerIP]
+                    console.log(game.server.get(roomId))
                     if (game.server.get(roomId).numberOfPlayers === 1) {
-                        "DELETE"
                         delete game.server.delete(roomId)
                     }
                     stop = true

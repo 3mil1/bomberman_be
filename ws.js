@@ -309,11 +309,10 @@ export const
                     return game.addMessage(name, args, roomId);
                 }
                 case "CLOSE_CONNECTION": {
-                    console.log("CLOSE")
                     if (!matchPlayerIPWithRoomId[playerIP]) return
                     const {roomId} = matchPlayerIPWithRoomId[playerIP]
                     delete matchPlayerIPWithRoomId[playerIP]
-                    console.log(game.server.get(roomId))
+                    this.server.get(roomId)["numberOfPlayers"] -= 1
                     if (game.server.get(roomId).numberOfPlayers === 1) {
                         delete game.server.delete(roomId)
                     }

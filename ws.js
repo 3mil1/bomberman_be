@@ -312,10 +312,10 @@ export const
                     if (!matchPlayerIPWithRoomId[playerIP]) return
                     const {roomId} = matchPlayerIPWithRoomId[playerIP]
                     delete matchPlayerIPWithRoomId[playerIP]
-                    game.server.get(roomId)["numberOfPlayers"] -= 1
                     if (game.server.get(roomId).numberOfPlayers === 1) {
                         delete game.server.delete(roomId)
                     }
+                    game.server.get(roomId)["numberOfPlayers"] -= 1
                     console.log("GAME", game.server)
                     stop = true
                     return

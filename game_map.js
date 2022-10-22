@@ -59,19 +59,19 @@ export class GameMap {
         let stopDown = false;
         for (let i = 1; i <= radius; i++) {
             if (x + i < this.numCols) {
-                stopRight = stopRight || this.template[y][x + i] === types.wall;
+                stopRight = stopRight || this.template[y][x + i] === types.wall || this.template[y][x + i] === types.bomb;
                 this.template[y][x + i] = stopRight ? this.template[y][x + i] : types.detonatedBomb;
             }
             if (x - i > 0) {
-                stopLeft = stopLeft || this.template[y][x - i] === types.wall;
+                stopLeft = stopLeft || this.template[y][x - i] === types.wall  || this.template[y][x + i] === types.bomb;
                 this.template[y][x - i] = stopLeft ? this.template[y][x - i] : types.detonatedBomb;
             }
             if (y + i < this.numRows) {
-                stopUp = stopUp || this.template[y + i][x] === types.wall;
+                stopUp = stopUp || this.template[y + i][x] === types.wall  || this.template[y][x + i] === types.bomb;
                 this.template[y + i][x] = stopUp ? this.template[y + i][x] : types.detonatedBomb;
             }
             if (y - 1 > 0) {
-                stopDown = stopDown || this.template[y - i][x] === types.wall;
+                stopDown = stopDown || this.template[y - i][x] === types.wall  || this.template[y][x + i] === types.bomb;
                 this.template[y - i][x] = stopDown ? this.template[y - i][x] : types.detonatedBomb;
             }
         }

@@ -319,6 +319,8 @@ export const
                     } else {
                         game.server.get(roomId)["numberOfPlayers"] -= 1
                     }
+
+                    console.log(game.server)
                     return
                 }
                 default:

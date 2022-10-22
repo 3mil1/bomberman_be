@@ -29,7 +29,7 @@ Array.prototype.remove = function () {
 
 const matchPlayerIPWithRoomId = {}
 const playerMoving = [];
-let stop = false
+// let stop = false
 
 const trackBombs = () => {
     return {
@@ -246,7 +246,7 @@ class Game {
     }
 
     startGame(roomId) {
-        stop = false;
+        // stop = false;
         return this.server.get(roomId).started = true;
     }
 
@@ -318,7 +318,7 @@ export const
 
                     if (game.server.get(roomId).numberOfPlayers === 0) {
                         delete game.server.delete(roomId)
-                        stop = true
+                        // stop = true
                     }
 
                     console.log("GAME SERVER:")
@@ -374,9 +374,9 @@ export const
                 animate(obj)
             }, 1000 / fps);
 
-            if (stop) {
-                clearTimeout(gameLoop)
-            }
+            // if (stop) {
+            //     clearTimeout(gameLoop)
+            // }
         }
 
         ws.broadcast = function broadcast(obj) {

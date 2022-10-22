@@ -163,7 +163,9 @@ class Game {
 
     #setTimer(room, roomId) {
         if (!room.timer) {
-            room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {this.startGame(roomId)});
+            room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
+                this.startGame(roomId)
+            });
         }
         if (room.numberOfPlayers === 4) {
             room.timer.startCountdownTimer();
@@ -307,6 +309,7 @@ export const
                     return game.addMessage(name, args, roomId);
                 }
                 case "CLOSE_CONNECTION": {
+                    console.log("CLOSE")
                     if (!matchPlayerIPWithRoomId[playerIP]) return
                     const {roomId} = matchPlayerIPWithRoomId[playerIP]
                     delete matchPlayerIPWithRoomId[playerIP]
@@ -314,7 +317,7 @@ export const
                     if (game.server.get(roomId).numberOfPlayers === 1) {
                         delete game.server.delete(roomId)
                     }
-                    console.log(game.server)
+                    console.log("GAME", game.server)
                     stop = true
                     return
                 }

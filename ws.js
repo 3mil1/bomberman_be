@@ -27,7 +27,7 @@ Array.prototype.remove = function () {
     return this;
 };
 
-const matchPlayerIPWithRoomId = {}
+const matchPlayerIDWithRoomId = {}
 const playerMoving = [];
 // let stop = false
 
@@ -266,19 +266,19 @@ export const
         let trackedBombs = trackBombs()
         let startTrackingBomb
 
-        const commands = (method, args, playerIP) => {
+        const commands = (method, args, playerID) => {
             switch (method) {
                 case SET_POSITION : {
-                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
                     const {move, direction} = args
                     const player = game.server.get(roomId).players[name]
 
                     if (move) {
                         player.moving = true;
-                        if (!playerMoving.includes(playerIP)) playerMoving.push(playerIP)
+                        if (!playerMoving.includes(playerID)) playerMoving.push(playerID)
                     } else {
                         player.moving = false;
-                        playerMoving.remove(playerIP)
+                        playerMoving.remove(playerID)
                     }
 
                     const newPosition = game.server.get(roomId).players[name].setPosition(game.server.get(roomId).map.template, direction);
@@ -289,30 +289,30 @@ export const
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
                     if (roomId === "room does not exist") return roomId
-                    matchPlayerIPWithRoomId[playerIP] = {roomId, name}
+                    matchPlayerIDWithRoomId[playerID] = {roomId, name}
                     return {roomId, name}
                 }
 
                 case SET_BOMB: {
-                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
                     const {x, y, timer} = game.setBomb(name, roomId)
                     if (timer > 0) startTrackingBomb.placeBomb(x, y, timer, roomId, name);
                     return {x, y}
                 }
-                // case START_GAME: {
-                //     stop = false
-                //     const {roomId} = args
-                //     return game.startGame(roomId)
-                // }
+                case START_GAME: {
+                    // stop = false
+                    const {roomId} = args
+                    return game.startGame(roomId)
+                }
                 case NEW_MESSAGE : {
-                    const {roomId, name} = matchPlayerIPWithRoomId[playerIP]
+                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
                     // const {text} = args;
                     return game.addMessage(name, args, roomId);
                 }
                 case CLOSE_CONNECTION: {
-                    if (!matchPlayerIPWithRoomId[playerIP]) return
-                    const {roomId} = matchPlayerIPWithRoomId[playerIP]
-                    delete matchPlayerIPWithRoomId[playerIP]
+                    if (!matchPlayerIDWithRoomId[playerID]) return
+                    const {roomId} = matchPlayerIDWithRoomId[playerID]
+                    delete matchPlayerIDWithRoomId[playerID]
 
                     game.server.get(roomId)["numberOfPlayers"] -= 1
 
@@ -338,12 +338,15 @@ export const
 
             // client.send(JSON.stringify({...obj[roomId], chat: obj[roomId].chat}), {binary: false});
 
-            const playerIP = req.socket.remoteAddress;
+            // const playerIP = req.socket.remoteAddress;
+            const playerID = req.url.split('=')[1];
+            connection.playerID = playerID;         
+            
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
 
-                const fromCmd = commands(method, args, playerIP)
+                const fromCmd = commands(method, args, playerID)
 
                 if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
@@ -351,22 +354,22 @@ export const
 
                     connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
-                //
-                // const {roomId} = args
-                // if (roomId) {
-                //     const gameClass = game.server
-                //     const gameObj = Object.fromEntries(gameClass);
-                //     if (!gameObj[roomId].gameOver) animate(gameObj, playerIP, connection);
-                //     //add case for game over
-                // }
+                
+                const {roomId} = args
+                if (roomId) {
+                    const gameClass = game.server
+                    const gameObj = Object.fromEntries(gameClass);
+                    if (!gameObj[roomId].gameOver) animate(gameObj, playerID, connection);
+                    //add case for game over
+                }
             });
         })
 
         function animate(obj) {
             ws.broadcast(obj);
 
-            playerMoving.forEach(ip => {
-                commands('setPosition', {move: true, direction: null}, ip)
+            playerMoving.forEach(id => {
+                commands('setPosition', {move: true, direction: null}, id)
             })
 
             let gameLoop = setTimeout(() => {
@@ -381,9 +384,9 @@ export const
 
         ws.broadcast = function broadcast(obj) {
             ws.clients.forEach(function each(client) {
-                const ip = client["_socket"]["_peername"].address
-                if (!matchPlayerIPWithRoomId[ip]) return;
-                const roomId = matchPlayerIPWithRoomId[ip].roomId
+                const id = client.playerID;
+                if (!matchPlayerIDWithRoomId[id]) return;
+                const roomId = matchPlayerIDWithRoomId[id].roomId
                 if (!roomId) return
                 const g = game.server.get(roomId);
                 client.send(JSON.stringify({

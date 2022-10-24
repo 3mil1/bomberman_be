@@ -138,7 +138,7 @@ class Game {
         this.server.set(roomId, {})
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
-        this.server.get(roomId)["numberOfPlayers"] = 0
+        this.server.get(roomId)["numberOfPlayers"] = 4
         this.server.get(roomId)["chat"] = [{"author": "Bot", "text": "Welcome!", "id": Date.now()}];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
@@ -151,7 +151,9 @@ class Game {
             roomId = this.#setRoom()
         }
         const room = this.server.get(roomId)
-        if (!room) return {roomId: "room does not exist", name}
+        if (!room) return {error: "room does not exist"}
+        if (room.numberOfPlayers === 4 || room.started) return {error: "the game already started"};
+
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])

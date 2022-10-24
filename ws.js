@@ -1,7 +1,7 @@
 import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
-    ACTIVE, CLOSE_CONNECTION,
+    ACTIVE, ALPHA_REGEX, CLOSE_CONNECTION,
     COUNTDOWN_TIMER,
     LOOSER,
     NEW_MESSAGE,
@@ -151,9 +151,8 @@ class Game {
             roomId = this.#setRoom()
         }
         const room = this.server.get(roomId)
-        if (!room) return {error: "room does not exist"}
-        if (room.numberOfPlayers === 4 || room.started) return {error: "the game already started"};
-
+        if (!room) return {roomId: "room does not exist", name}
+        if (room.numberOfPlayers === 4 || room.started) return {roomId: "the game already started", name};
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
@@ -290,7 +289,6 @@ export const
 
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
-                    if (roomId === "room does not exist") return roomId
                     matchPlayerIDWithRoomId[playerID] = {roomId, name}
                     return {roomId, name}
                 }
@@ -352,16 +350,21 @@ export const
 
                 if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
-                    console.log(roomId, name)
-
-                    connection.send(JSON.stringify({roomId, name}), {binary: false});
+                    // console.log(roomId, name)
+                    if (roomId.match(ALPHA_REGEX)) {
+                        console.log(roomId, name);
+                        connection.send(JSON.stringify({error: `${roomId}`}))
+                    } else {
+                        connection.send(JSON.stringify({roomId, name}), {binary: false});
+                    }
                 }
                 
                 const {roomId} = args
                 if (roomId) {
+                    console.log("here");
                     const gameClass = game.server
                     const gameObj = Object.fromEntries(gameClass);
-                    if (!gameObj[roomId].gameOver) animate(gameObj, playerID, connection);
+                    if (!gameObj[roomId].gameOver && gameObj[roomId].started) animate(gameObj, playerID, connection);
                     //add case for game over
                 }
             });

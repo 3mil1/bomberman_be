@@ -1,10 +1,12 @@
-const OFFSET = 46;
+const WIDTH = 40;
+const HEIGHT = 43;
+const OFFSET = HEIGHT - WIDTH;
 
 const checkCollision = (map, position, direction) => {
-  const left_top_corner = { x: position.x , y: position.y };
-  const right__top_corner = { x: position.x + OFFSET, y: position.y };
-  const left_bottom_corner = { x: position.x, y: position.y + OFFSET };
-  const right__bottom_corner = { x: position.x + OFFSET, y: position.y + OFFSET,};
+  const left_top_corner = { x: position.x + OFFSET, y: position.y + OFFSET};
+  const right__top_corner = { x: position.x + WIDTH, y: position.y  + OFFSET};
+  const left_bottom_corner = { x: position.x + OFFSET, y: position.y + HEIGHT };
+  const right__bottom_corner = { x: position.x + WIDTH, y: position.y + HEIGHT,};
 
   switch (direction) {
     case 'up':

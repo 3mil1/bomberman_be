@@ -60,7 +60,6 @@ class Player {
         this.position = {x, y};
         this.speed = 1;
         this.health = 3;
-        // this.power = new Set();
         this.bombCount = 1;
         this.direction = DIRECTION.DOWN;
         this.flame = 1;
@@ -151,7 +150,9 @@ class Game {
             roomId = this.#setRoom()
         }
         const room = this.server.get(roomId)
-        if (!room) return {roomId: "room does not exist", name}
+        if (!room) return {error: "room does not exist"}
+        if (room.numberOfPlayers === 4 || room.started) return {error: "the game already started"};
+
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
@@ -164,7 +165,7 @@ class Game {
     #setTimer(room, roomId) {
         if (!room.timer) {
             room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
-                this.startGame(roomId)
+                this.startGame(roomId);
             });
         }
         if (room.numberOfPlayers === 4) {
@@ -241,6 +242,7 @@ class Game {
         const power = gameMap.hasPowerUp(x, y)
         if (power) {
             player.setPower(power);
+            console.log(player);
             gameMap.deletePowerUp(x, y);
         }
     }
@@ -290,6 +292,7 @@ export const
                     const {roomId, name} = game.setPlayer(args)
                     if (roomId === "room does not exist") return roomId
                     matchPlayerIDWithRoomId[playerID] = {roomId, name}
+                    console.log(game.server.get(roomId).map.powerUps);
                     return {roomId, name}
                 }
 

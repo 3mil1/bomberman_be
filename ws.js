@@ -140,7 +140,7 @@ class Game {
         this.server.set(roomId, {})
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
-        this.server.get(roomId)["numberOfPlayers"] = 0
+        this.server.get(roomId)["numberOfPlayers"] = 0;
         this.server.get(roomId)["chat"] = [{"author": "Bot", "text": "Welcome!", "id": Date.now()}];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
@@ -154,7 +154,8 @@ class Game {
         }
         const room = this.server.get(roomId);
         if (!room) return {roomId: "room does not exist", name}
-        if (room.numberOfPlayers === 4 || room.started || room.timer.getCountdown()) return {roomId: "the game already started", name};
+        const t = room.timer ? room.timer.getCountdown() : null;
+        if (room.numberOfPlayers === 4 || room.started || t) return {roomId: "the game already started", name};
 
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
@@ -373,7 +374,6 @@ export const
         })
 
         function animate(obj) {
-            console.log(obj);
             if (obj.server.size > 0) {
                 ws.broadcast(obj);
 
@@ -415,9 +415,7 @@ export const
         ws.on('close', () => {
             console.log("Here")
         })
-        console.log("111", game.server.size);
         animate(game);
-        // if (game.server.size > 0) animate(game);
 
         console.log(`API on port ${port}`);
     };

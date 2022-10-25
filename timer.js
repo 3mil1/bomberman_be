@@ -49,4 +49,7 @@ export class Timer {
         if (this.countdownID) return this.countdown;
         return null;
     }
+    getCountdown() {
+        return !!this.countdownID;
+    }
 }

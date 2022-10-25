@@ -1,7 +1,9 @@
 import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
-    ACTIVE, ALPHA_REGEX, CLOSE_CONNECTION,
+    ACTIVE,
+    ALPHA_REGEX,
+    CLOSE_CONNECTION,
     COUNTDOWN_TIMER,
     LOOSER,
     NEW_MESSAGE,
@@ -138,7 +140,7 @@ class Game {
         this.server.set(roomId, {})
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
-        this.server.get(roomId)["numberOfPlayers"] = 4
+        this.server.get(roomId)["numberOfPlayers"] = 0
         this.server.get(roomId)["chat"] = [{"author": "Bot", "text": "Welcome!", "id": Date.now()}];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
@@ -150,9 +152,10 @@ class Game {
         if (roomId === "") {
             roomId = this.#setRoom()
         }
-        const room = this.server.get(roomId)
+        const room = this.server.get(roomId);
         if (!room) return {roomId: "room does not exist", name}
-        if (room.numberOfPlayers === 4 || room.started) return {roomId: "the game already started", name};
+        if (room.numberOfPlayers === 4 || room.started || room.timer.getCountdown()) return {roomId: "the game already started", name};
+
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
@@ -165,7 +168,7 @@ class Game {
     #setTimer(room, roomId) {
         if (!room.timer) {
             room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
-                this.startGame(roomId)
+                this.startGame(roomId);
             });
         }
         if (room.numberOfPlayers === 4) {
@@ -340,8 +343,8 @@ export const
 
             // const playerIP = req.socket.remoteAddress;
             const playerID = req.url.split('=')[1];
-            connection.playerID = playerID;         
-            
+            connection.playerID = playerID;
+
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
@@ -358,29 +361,36 @@ export const
                         connection.send(JSON.stringify({roomId, name}), {binary: false});
                     }
                 }
-                
-                const {roomId} = args
-                if (roomId) {
-                    console.log("here");
-                    const gameClass = game.server
-                    const gameObj = Object.fromEntries(gameClass);
-                    if (!gameObj[roomId].gameOver && gameObj[roomId].started) animate(gameObj, playerID, connection);
-                    //add case for game over
-                }
+
+                // const {roomId} = args
+                // if (roomId) {
+                //     const gameClass = game.server
+                //     const gameObj = Object.fromEntries(gameClass);
+                //     if (!gameObj[roomId].gameOver && gameObj[roomId].started) animate(gameObj, playerID, connection);
+                //     //add case for game over
+                // }
             });
         })
 
         function animate(obj) {
-            ws.broadcast(obj);
+            console.log(obj);
+            if (obj.server.size > 0) {
+                ws.broadcast(obj);
 
-            playerMoving.forEach(id => {
-                commands('setPosition', {move: true, direction: null}, id)
-            })
+                playerMoving.forEach(id => {
+                    commands('setPosition', {move: true, direction: null}, id)
+                })
 
-            let gameLoop = setTimeout(() => {
-                startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game), game.changeMap.bind(game))
-                animate(obj)
-            }, 1000 / fps);
+                let gameLoop = setTimeout(() => {
+                    startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game), game.changeMap.bind(game))
+                    animate(obj)
+                }, 1000 / fps);
+            } else {
+                setTimeout(() => {
+                    animate(obj);
+                }, 1000);
+            }
+
 
             // if (stop) {
             //     clearTimeout(gameLoop)
@@ -405,7 +415,9 @@ export const
         ws.on('close', () => {
             console.log("Here")
         })
+        console.log("111", game.server.size);
         animate(game);
+        // if (game.server.size > 0) animate(game);
 
         console.log(`API on port ${port}`);
     };

@@ -157,6 +157,7 @@ class Game {
         }
         const room = this.server.get(roomId);
         if (!room) return {roomId: "room does not exist", name}
+
         const t = room.timer ? room.timer.getCountdown() : null;
         if (room.numberOfPlayers === 4 || room.started || t) return {roomId: "the game already started", name};
 
@@ -204,7 +205,6 @@ class Game {
     }
 
     #changeStats(room, name) {
-        // console.log(room.players);
         Object.keys(room.players).forEach((key) => {
             let player = room.players[key];
             const {x, y} = player.getCell();
@@ -215,7 +215,6 @@ class Game {
                         room.players[name].kills++
                     }
                     room.players[name].takenLives++;
-                    console.log("after decrease health", room.players[name]);
                 }
             }
         });
@@ -232,10 +231,12 @@ class Game {
                     room.numberOfPlayers = 0;
                     room['gameOver'] = true;
                 });
+                console.log("0", room.players)
                 break;
             case 1:
                 room.players[leftPlayers[0]].status = WINNER;
                 room['gameOver'] = true;
+                console.log("1", room.players)
                 break;
             default:
                 room.numberOfPlayers = leftPlayers.length;
@@ -391,6 +392,7 @@ export const
         })
 
         function animate(obj) {
+            console.log("animate", obj);
             if (obj.server.size > 0) {
                 ws.broadcast(obj);
 
@@ -416,6 +418,7 @@ export const
                 const roomId = matchPlayerIDWithRoomId[id].roomId
                 if (!roomId) return
                 const g = game.server.get(roomId);
+                if (!g) return;
                 client.send(JSON.stringify({
                     ...g,
                     map: g['map'].template,

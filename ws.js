@@ -301,12 +301,15 @@ export const
                 case GET_ROOMS : {
                     const rooms = [];
                     game.server.forEach((room, key) => {
-                        const r =
-                            {
-                                roomId: key,
-                                numberOfPlayers: room.numberOfPlayers
-                            }
-                        rooms.push(r);
+                        const t = room.timer ? room.timer.getCountdown() : null;
+                        if (room.numberOfPlayers < 4 && !t && !room.started) {
+                            const r =
+                                {
+                                    roomId: key,
+                                    numberOfPlayers: room.numberOfPlayers
+                                }
+                            rooms.push(r);
+                        }
                     })
                     return rooms;
                 }
@@ -366,10 +369,10 @@ export const
 
                 const fromCmd = commands(method, args, playerID)
                 if (method === GET_ROOMS) {
-                    console.log("2", JSON.stringify({games:  fromCmd}));
+                    console.log("2", JSON.stringify({games: fromCmd}));
                     connection.send(JSON.stringify({games: fromCmd}));
                 }
-                 if (method === SET_PLAYER) {
+                if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
                     // console.log(roomId, name)
                     if (roomId.match(ALPHA_REGEX)) {

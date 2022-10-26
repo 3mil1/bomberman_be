@@ -2,7 +2,7 @@ import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
     ACTIVE, CLOSE_CONNECTION,
-    COUNTDOWN_TIMER,
+    COUNTDOWN_TIMER, GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
     SET_BOMB,
@@ -321,11 +321,11 @@ export const
                         // stop = true
                     }
 
-                    console.log("GAME SERVER:")
-                    console.log(game.server)
-                    console.log()
-                    console.log()
-                    console.log()
+                    // console.log("GAME SERVER:")
+                    // console.log(game.server)
+                    // console.log()
+                    // console.log()
+                    // console.log()
                     return
                 }
                 default:
@@ -340,7 +340,7 @@ export const
 
             // const playerIP = req.socket.remoteAddress;
             const playerID = req.url.split('=')[1];
-            connection.playerID = playerID;         
+            connection.playerID = playerID;
             
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
@@ -355,13 +355,13 @@ export const
                     connection.send(JSON.stringify({roomId, name}), {binary: false});
                 }
                 
-                const {roomId} = args
-                if (roomId) {
-                    const gameClass = game.server
-                    const gameObj = Object.fromEntries(gameClass);
-                    if (!gameObj[roomId].gameOver) animate(gameObj, playerID, connection);
-                    //add case for game over
-                }
+                // const {roomId} = args
+                // if (roomId) {
+                //     const gameClass = game.server
+                //     const gameObj = Object.fromEntries(gameClass);
+                //     if (!gameObj[roomId].gameOver) animate(gameObj, playerID, connection);
+                //     //add case for game over
+                // }
             });
         })
 

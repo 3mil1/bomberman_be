@@ -3,6 +3,7 @@ import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
     ACTIVE, CLOSE_CONNECTION,
     COUNTDOWN_TIMER,
+    GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
     SET_BOMB,
@@ -293,6 +294,19 @@ export const
                     return {roomId, name}
                 }
 
+                case GET_ROOMS : {
+                    const rooms = [];
+                    game.server.forEach((room, key) => {
+                        const r =
+                            {
+                                roomId: key,
+                                numberOfPlayers: room.numberOfPlayers
+                            }
+                        rooms.push(r);
+                    })
+                    return rooms;
+                }
+
                 case SET_BOMB: {
                     const {roomId, name} = matchPlayerIDWithRoomId[playerID]
                     const {x, y, timer} = game.setBomb(name, roomId)
@@ -348,6 +362,10 @@ export const
 
                 const fromCmd = commands(method, args, playerID)
 
+                if (method === GET_ROOMS) {
+                    console.log("2", JSON.stringify({games:  fromCmd}));
+                    connection.send(JSON.stringify({games: fromCmd}));
+                } 
                 if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
                     console.log(roomId, name)

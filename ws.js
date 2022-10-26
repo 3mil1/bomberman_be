@@ -70,6 +70,8 @@ class Player {
         this.newPosition = {x, y}
         this.moving = false;
         this.status = ACTIVE;
+        this.kills = 0;
+        this.takenLives = 0;
     }
 
     #speedUp() {
@@ -198,15 +200,23 @@ class Game {
 
         room["map"].explosion(x, y, flameRadius);
 
-        this.#changeStats(room);
+        this.#changeStats(room, name);
     }
 
-    #changeStats(room) {
-        Object.keys(room.players).forEach((p) => {
-            let player = room.players[p];
+    #changeStats(room, name) {
+        // console.log(room.players);
+        Object.keys(room.players).forEach((key) => {
+            let player = room.players[key];
             const {x, y} = player.getCell();
             if (room["map"].template[y][x] === types.detonatedBomb) {
                 player.decreaseHealth();
+                if (key !== name) {
+                    if (player.health === 0) {
+                        room.players[name].kills++
+                    }
+                    room.players[name].takenLives++;
+                    console.log("after decrease health", room.players[name]);
+                }
             }
         });
         const leftPlayers = Object.keys(room.players).filter((p) => {
@@ -252,7 +262,6 @@ class Game {
     }
 
     startGame(roomId) {
-        // stop = false;
         return this.server.get(roomId).started = true;
     }
 
@@ -321,13 +330,11 @@ export const
                     return {x, y}
                 }
                 case START_GAME: {
-                    // stop = false
                     const {roomId} = args
                     return game.startGame(roomId)
                 }
                 case NEW_MESSAGE : {
                     const {roomId, name} = matchPlayerIDWithRoomId[playerID]
-                    // const {text} = args;
                     return game.addMessage(name, args, roomId);
                 }
                 case CLOSE_CONNECTION: {
@@ -339,18 +346,10 @@ export const
 
                     if (game.server.get(roomId).numberOfPlayers === 0) {
                         delete game.server.delete(roomId)
-                        // stop = true
                     }
-                    //
-                    // console.log("GAME SERVER:")
-                    // console.log(game.server)
-                    // console.log()
-                    // console.log()
-                    // console.log()
                     return
                 }
                 default:
-                    // console.log("Unknown case");
                     return undefined;
             }
         }
@@ -369,14 +368,12 @@ export const
 
                 const fromCmd = commands(method, args, playerID)
                 if (method === GET_ROOMS) {
-                    console.log("2", JSON.stringify({games: fromCmd}));
+                    // console.log("2", JSON.stringify({games: fromCmd}));
                     connection.send(JSON.stringify({games: fromCmd}));
                 }
                 if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
-                    // console.log(roomId, name)
                     if (roomId.match(ALPHA_REGEX)) {
-                        // console.log(roomId, name);
                         connection.send(JSON.stringify({error: `${roomId}`}));
                     } else {
                         connection.send(JSON.stringify({roomId, name}), {binary: false});
@@ -410,11 +407,6 @@ export const
                     animate(obj);
                 }, 1000);
             }
-
-
-            // if (stop) {
-            //     clearTimeout(gameLoop)
-            // }
         }
 
         ws.broadcast = function broadcast(obj) {

@@ -368,13 +368,13 @@ export const
                 if (method === GET_ROOMS) {
                     console.log("2", JSON.stringify({games:  fromCmd}));
                     connection.send(JSON.stringify({games: fromCmd}));
-                } else if (method === SET_PLAYER) {
+                }
+                 if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
                     // console.log(roomId, name)
                     if (roomId.match(ALPHA_REGEX)) {
                         // console.log(roomId, name);
                         connection.send(JSON.stringify({error: `${roomId}`}));
-
                     } else {
                         connection.send(JSON.stringify({roomId, name}), {binary: false});
                     }

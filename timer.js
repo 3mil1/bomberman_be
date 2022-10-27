@@ -1,10 +1,13 @@
 export class Timer {
-    constructor(waiting, countdown, start) {
+    constructor(waiting, countdown, start, gameOver, end) {
         this.countdown = countdown;
         this.waiting = waiting;
+        this.gameOver = gameOver;
         this.waitingID = null;
         this.countdownID = null;
+        this.gameOverID = null;
         this.start = start;
+        this.end = end;
         this.#startWaitingTimer();
     }
 
@@ -30,6 +33,16 @@ export class Timer {
         }, 1000);
     }
 
+    startGameOver() {
+        this.gameOverID = setTimeout(() => {
+            this.gameOver--;
+            if (this.gameOver <=0) {
+                this.deleteGameOver();
+                this.end;
+            }
+        }, 1000)
+    }
+
     deleteWaiting() {
         if (this.waitingID) {
             clearInterval(this.waitingID);
@@ -44,11 +57,24 @@ export class Timer {
         }
     }
 
+    deleteGameOver() {
+        if (this.gameOverID) {
+            clearInterval(this.gameOver);
+            this.gameOverID = null;
+        }
+    }
+
+    getGameOverTimer() {
+        if (this.gameOverID) return this.gameOver;
+        return null;
+    }
+
     getTimer() {
-        if (this.waitingID)
+        if (this.waitingID) {
             return {
-            firstTimer: this.waiting,
-        };
+                firstTimer: this.waiting,
+            };
+        }
         if (this.countdownID) {
             return {
                 secondTimer: this.countdown,
@@ -59,4 +85,5 @@ export class Timer {
     getCountdown() {
         return !!this.countdownID;
     }
+
 }

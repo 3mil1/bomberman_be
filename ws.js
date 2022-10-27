@@ -4,7 +4,8 @@ import {
     ACTIVE,
     ALPHA_REGEX,
     CLOSE_CONNECTION,
-    COUNTDOWN_TIMER, GAME_OVER_TIMER,
+    COUNTDOWN_TIMER,
+    GAME_OVER_TIMER,
     GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
@@ -148,7 +149,7 @@ class Game {
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
         this.server.get(roomId)["timer"] = null;
-        this.server.get(roomId)["gameOverTimer"] = null;
+        // this.server.get(roomId)["gameOverTimer"] = null;
         return roomId
     }
 
@@ -175,11 +176,19 @@ class Game {
         if (!room.timer) {
             room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
                 this.startGame(roomId);
-            });
+            }, () => this.endGame(roomId));
         }
         if (room.numberOfPlayers === 4) {
             room.timer.startCountdownTimer();
         }
+    }
+
+    endGame(roomId) {
+        const room = this.server.get(roomId);
+        Object.keys(room.players).forEach((player) => {
+            room.players[player].status = TIE;
+        });
+        room.gameOver = true;
     }
 
     setBomb(name, roomId) {

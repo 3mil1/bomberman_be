@@ -29,7 +29,6 @@ Array.prototype.remove = function () {
 
 const matchPlayerIDWithRoomId = {}
 const playerMoving = [];
-// let stop = false
 
 const trackBombs = () => {
     return {
@@ -151,14 +150,16 @@ class Game {
             roomId = this.#setRoom()
         }
         const room = this.server.get(roomId)
-        if (!room) return {roomId: "room does not exist", name}
+        if (!room) return {roomId, name, error: "room does not exist"}
+        if (room.started) return {roomId, name, error: "game have already started"}
+        if (room.players[name]) return {roomId, name, error: "player with this name is already exist"}
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
         if (room.numberOfPlayers > 1) {
             this.#setTimer(room, roomId);
         }
-        return {roomId, name}
+        return {roomId, name, error: null}
     }
 
     #setTimer(room, roomId) {
@@ -246,11 +247,9 @@ class Game {
     }
 
     startGame(roomId) {
-        // stop = false;
         return this.server.get(roomId).started = true;
     }
 
-    //Messages
     addMessage(name, text, roomId) {
         return this.server.get(roomId).chat.push(
             {"author": name, "text": text, "id": Date.now()}
@@ -269,7 +268,7 @@ export const
         const commands = (method, args, playerID) => {
             switch (method) {
                 case SET_POSITION : {
-                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
+                    const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     const {move, direction} = args
                     const player = game.server.get(roomId).players[name]
 
@@ -287,45 +286,39 @@ export const
                 }
 
                 case SET_PLAYER : {
-                    const {roomId, name} = game.setPlayer(args)
-                    if (roomId === "room does not exist") return roomId
+                    const {roomId, name, error} = game.setPlayer(args)
                     matchPlayerIDWithRoomId[playerID] = {roomId, name}
-                    return {roomId, name}
+                    return {roomId, name, error}
                 }
 
                 case SET_BOMB: {
-                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
+                    const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     const {x, y, timer} = game.setBomb(name, roomId)
                     if (timer > 0) startTrackingBomb.placeBomb(x, y, timer, roomId, name);
                     return {x, y}
                 }
                 case START_GAME: {
-                    // stop = false
                     const {roomId} = args
                     return game.startGame(roomId)
                 }
                 case NEW_MESSAGE : {
-                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
+                    const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     // const {text} = args;
                     return game.addMessage(name, args, roomId);
                 }
                 case CLOSE_CONNECTION: {
                     if (!matchPlayerIDWithRoomId[playerID]) return
-                    const {roomId} = matchPlayerIDWithRoomId[playerID]
+                    const {name, roomId} = matchPlayerIDWithRoomId[playerID]
                     delete matchPlayerIDWithRoomId[playerID]
 
-                    game.server.get(roomId)["numberOfPlayers"] -= 1
+                    game.server.get(roomId).numberOfPlayers -= 1
+                    delete game.server.get(roomId).players[name]
 
                     if (game.server.get(roomId).numberOfPlayers === 0) {
                         delete game.server.delete(roomId)
-                        // stop = true
                     }
-
-                    console.log("GAME SERVER:")
-                    console.log(game.server)
-                    console.log()
-                    console.log()
-                    console.log()
+                    // console.log("GAME SERVER:")
+                    // console.log(game.server)
                     return
                 }
                 default:
@@ -340,8 +333,8 @@ export const
 
             // const playerIP = req.socket.remoteAddress;
             const playerID = req.url.split('=')[1];
-            connection.playerID = playerID;         
-            
+            connection.playerID = playerID;
+
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
@@ -349,12 +342,15 @@ export const
                 const fromCmd = commands(method, args, playerID)
 
                 if (method === SET_PLAYER) {
-                    const {roomId, name} = fromCmd
-                    console.log(roomId, name)
+                    const {roomId, name, error} = fromCmd
+                    console.log(roomId, name, error)
 
-                    connection.send(JSON.stringify({roomId, name}), {binary: false});
+                    const returnObj = {roomId, name}
+                    if (error) returnObj.error = error
+
+                    connection.send(JSON.stringify(returnObj), {binary: false});
                 }
-                
+
                 const {roomId} = args
                 if (roomId) {
                     const gameClass = game.server
@@ -377,9 +373,6 @@ export const
                 animate(obj)
             }, 1000 / fps);
 
-            // if (stop) {
-            //     clearTimeout(gameLoop)
-            // }
         }
 
         ws.broadcast = function broadcast(obj) {
@@ -401,10 +394,8 @@ export const
             console.log("Here")
         })
         animate(game);
-
         console.log(`API on port ${port}`);
     };
-
 
 function uuidv4() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {

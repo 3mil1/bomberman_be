@@ -2,7 +2,7 @@ import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
     ACTIVE, CLOSE_CONNECTION,
-    COUNTDOWN_TIMER,
+    COUNTDOWN_TIMER, GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
     SET_BOMB,
@@ -351,13 +351,13 @@ export const
                     connection.send(JSON.stringify(returnObj), {binary: false});
                 }
 
-                const {roomId} = args
-                if (roomId) {
-                    const gameClass = game.server
-                    const gameObj = Object.fromEntries(gameClass);
-                    if (!gameObj[roomId].gameOver) animate(gameObj, playerID, connection);
-                    //add case for game over
-                }
+                // const {roomId} = args
+                // if (roomId) {
+                //     const gameClass = game.server
+                //     const gameObj = Object.fromEntries(gameClass);
+                //     if (!gameObj[roomId].gameOver) animate(gameObj, playerID, connection);
+                //     //add case for game over
+                // }
             });
         })
 
@@ -373,6 +373,9 @@ export const
                 animate(obj)
             }, 1000 / fps);
 
+            // if (stop) {
+            //     clearTimeout(gameLoop)
+            // }
         }
 
         ws.broadcast = function broadcast(obj) {

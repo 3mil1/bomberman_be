@@ -435,9 +435,9 @@ export const
                 if (!roomId) return
                 const g = game.server.get(roomId);
                 if (!g) return;
-                if(g['timer']) {
-                    console.log("Timer:", g['timer'].getTimer());
-                }
+                // if(g['timer']) {
+                //     console.log("Timer:", g['timer'].getTimer());
+                // }
                 client.send(JSON.stringify({
                     ...g,
                     map: g['map'].template,

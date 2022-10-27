@@ -45,8 +45,15 @@ export class Timer {
     }
 
     getTimer() {
-        if (this.waitingID) return this.waiting;
-        if (this.countdownID) return this.countdown;
+        if (this.waitingID)
+            return {
+            firstTimer: this.waiting,
+        };
+        if (this.countdownID) {
+            return {
+                secondTimer: this.countdown,
+            };
+        }
         return null;
     }
     getCountdown() {

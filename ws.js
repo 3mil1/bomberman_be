@@ -1,8 +1,10 @@
 import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
-    ACTIVE, CLOSE_CONNECTION,
-    COUNTDOWN_TIMER,
+    ACTIVE,
+    ALPHA_REGEX,
+    CLOSE_CONNECTION,
+    COUNTDOWN_TIMER, GAME_OVER_TIMER,
     GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
@@ -68,6 +70,8 @@ class Player {
         this.newPosition = {x, y}
         this.moving = false;
         this.status = ACTIVE;
+        this.kills = 0;
+        this.takenLives = 0;
     }
 
     #speedUp() {
@@ -139,11 +143,12 @@ class Game {
         this.server.set(roomId, {})
         this.server.get(roomId)["map"] = new GameMap(template);
         this.server.get(roomId)["started"] = false
-        this.server.get(roomId)["numberOfPlayers"] = 0
+        this.server.get(roomId)["numberOfPlayers"] = 0;
         this.server.get(roomId)["chat"] = [{"author": "Bot", "text": "Welcome!", "id": Date.now()}];
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
         this.server.get(roomId)["timer"] = null;
+        this.server.get(roomId)["gameOverTimer"] = null;
         return roomId
     }
 
@@ -151,8 +156,12 @@ class Game {
         if (roomId === "") {
             roomId = this.#setRoom()
         }
-        const room = this.server.get(roomId)
+        const room = this.server.get(roomId);
         if (!room) return {roomId: "room does not exist", name}
+
+        const t = room.timer ? room.timer.getCountdown() : null;
+        if (room.numberOfPlayers === 4 || room.started || t) return {roomId: "the game already started", name};
+
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
         room.players[name] = new Player(playerPositions[room["numberOfPlayers"]])
@@ -165,7 +174,7 @@ class Game {
     #setTimer(room, roomId) {
         if (!room.timer) {
             room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
-                this.startGame(roomId)
+                this.startGame(roomId);
             });
         }
         if (room.numberOfPlayers === 4) {
@@ -193,15 +202,21 @@ class Game {
 
         room["map"].explosion(x, y, flameRadius);
 
-        this.#changeStats(room);
+        this.#changeStats(room, name);
     }
 
-    #changeStats(room) {
-        Object.keys(room.players).forEach((p) => {
-            let player = room.players[p];
+    #changeStats(room, name) {
+        Object.keys(room.players).forEach((key) => {
+            let player = room.players[key];
             const {x, y} = player.getCell();
             if (room["map"].template[y][x] === types.detonatedBomb) {
                 player.decreaseHealth();
+                if (key !== name) {
+                    if (player.health === 0) {
+                        room.players[name].kills++
+                    }
+                    room.players[name].takenLives++;
+                }
             }
         });
         const leftPlayers = Object.keys(room.players).filter((p) => {
@@ -214,9 +229,9 @@ class Game {
             case 0:
                 Object.keys(room.players).forEach((player) => {
                     room.players[player].status = TIE;
-                    room.numberOfPlayers = 0;
-                    room['gameOver'] = true;
                 });
+                room.numberOfPlayers = 0;
+                room['gameOver'] = true;
                 break;
             case 1:
                 room.players[leftPlayers[0]].status = WINNER;
@@ -232,6 +247,24 @@ class Game {
         let player = room.players[name];
         let flameRadius = player.flame;
         room["map"].changeMapAfterExplosion(x, y, flameRadius);
+        if (!room["map"].hasBoxes()) {
+            if (!room.gameOverTimer) {
+                room.gameOverTimer = this.#runTimer(room);
+            }
+            if (room.gameOver) {
+                clearInterval(room.gameOverTimer);
+            }
+
+        }
+    }
+
+    #runTimer(room) {
+        return setTimeout(() => {
+            Object.keys(room.players).forEach((player) => {
+                room.players[player].status = TIE;
+            });
+            room.gameOver = true;
+        }, GAME_OVER_TIMER);
     }
 
     checkForPowerUps(name, roomId) {
@@ -247,7 +280,6 @@ class Game {
     }
 
     startGame(roomId) {
-        // stop = false;
         return this.server.get(roomId).started = true;
     }
 
@@ -289,7 +321,6 @@ export const
 
                 case SET_PLAYER : {
                     const {roomId, name} = game.setPlayer(args)
-                    if (roomId === "room does not exist") return roomId
                     matchPlayerIDWithRoomId[playerID] = {roomId, name}
                     return {roomId, name}
                 }
@@ -297,12 +328,15 @@ export const
                 case GET_ROOMS : {
                     const rooms = [];
                     game.server.forEach((room, key) => {
-                        const r =
-                            {
-                                roomId: key,
-                                numberOfPlayers: room.numberOfPlayers
-                            }
-                        rooms.push(r);
+                        const t = room.timer ? room.timer.getCountdown() : null;
+                        if (room.numberOfPlayers < 4 && !t && !room.started) {
+                            const r =
+                                {
+                                    roomId: key,
+                                    numberOfPlayers: room.numberOfPlayers
+                                }
+                            rooms.push(r);
+                        }
                     })
                     return rooms;
                 }
@@ -314,13 +348,11 @@ export const
                     return {x, y}
                 }
                 case START_GAME: {
-                    // stop = false
                     const {roomId} = args
                     return game.startGame(roomId)
                 }
                 case NEW_MESSAGE : {
                     const {roomId, name} = matchPlayerIDWithRoomId[playerID]
-                    // const {text} = args;
                     return game.addMessage(name, args, roomId);
                 }
                 case CLOSE_CONNECTION: {
@@ -332,18 +364,10 @@ export const
 
                     if (game.server.get(roomId).numberOfPlayers === 0) {
                         delete game.server.delete(roomId)
-                        // stop = true
                     }
-
-                    console.log("GAME SERVER:")
-                    console.log(game.server)
-                    console.log()
-                    console.log()
-                    console.log()
                     return
                 }
                 default:
-                    // console.log("Unknown case");
                     return undefined;
             }
         }
@@ -354,50 +378,53 @@ export const
 
             // const playerIP = req.socket.remoteAddress;
             const playerID = req.url.split('=')[1];
-            connection.playerID = playerID;         
-            
+            connection.playerID = playerID;
+
             connection.on('message', async (message) => {
                 const obj = JSON.parse(message);
                 const {method, args = []} = obj;
 
                 const fromCmd = commands(method, args, playerID)
-
                 if (method === GET_ROOMS) {
-                    console.log("2", JSON.stringify({games:  fromCmd}));
+                    // console.log("2", JSON.stringify({games: fromCmd}));
                     connection.send(JSON.stringify({games: fromCmd}));
-                } 
+                }
                 if (method === SET_PLAYER) {
                     const {roomId, name} = fromCmd
-                    console.log(roomId, name)
+                    if (roomId.match(ALPHA_REGEX)) {
+                        connection.send(JSON.stringify({error: `${roomId}`}));
+                    } else {
+                        connection.send(JSON.stringify({roomId, name}), {binary: false});
+                    }
+                }
 
-                    connection.send(JSON.stringify({roomId, name}), {binary: false});
-                }
-                
-                const {roomId} = args
-                if (roomId) {
-                    const gameClass = game.server
-                    const gameObj = Object.fromEntries(gameClass);
-                    if (!gameObj[roomId].gameOver) animate(gameObj, playerID, connection);
-                    //add case for game over
-                }
+                // const {roomId} = args
+                // if (roomId) {
+                //     const gameClass = game.server
+                //     const gameObj = Object.fromEntries(gameClass);
+                //     if (!gameObj[roomId].gameOver && gameObj[roomId].started) animate(gameObj, playerID, connection);
+                //     //add case for game over
+                // }
             });
         })
 
         function animate(obj) {
-            ws.broadcast(obj);
+            if (obj.server.size > 0) {
+                ws.broadcast(obj);
 
-            playerMoving.forEach(id => {
-                commands('setPosition', {move: true, direction: null}, id)
-            })
+                playerMoving.forEach(id => {
+                    commands('setPosition', {move: true, direction: null}, id)
+                })
 
-            let gameLoop = setTimeout(() => {
-                startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game), game.changeMap.bind(game))
-                animate(obj)
-            }, 1000 / fps);
-
-            // if (stop) {
-            //     clearTimeout(gameLoop)
-            // }
+                let gameLoop = setTimeout(() => {
+                    startTrackingBomb = trackedBombs.setCallback(game.detonateBomb.bind(game), game.changeMap.bind(game))
+                    animate(obj)
+                }, 1000 / fps);
+            } else {
+                setTimeout(() => {
+                    animate(obj);
+                }, 1000);
+            }
         }
 
         ws.broadcast = function broadcast(obj) {
@@ -407,10 +434,15 @@ export const
                 const roomId = matchPlayerIDWithRoomId[id].roomId
                 if (!roomId) return
                 const g = game.server.get(roomId);
+                if (!g) return;
+                // if(g['timer']) {
+                //     console.log("Timer:", g['timer'].getTimer());
+                // }
                 client.send(JSON.stringify({
                     ...g,
                     map: g['map'].template,
-                    timer: g['timer'] ? g['timer'].getTimer() : null
+                    timer: g['timer'] ? g['timer'].getTimer() : null,
+                    gameOverTimer: g['gameOverTimer'] = null,
                 }), {binary: false});
             });
         };

@@ -4,7 +4,7 @@ import {
     ACTIVE,
     ALPHA_REGEX,
     CLOSE_CONNECTION,
-    COUNTDOWN_TIMER,
+    COUNTDOWN_TIMER, GAME_OVER_TIMER,
     GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
@@ -148,6 +148,7 @@ class Game {
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
         this.server.get(roomId)["timer"] = null;
+        this.server.get(roomId)["gameOverTimer"] = null;
         return roomId
     }
 
@@ -228,15 +229,13 @@ class Game {
             case 0:
                 Object.keys(room.players).forEach((player) => {
                     room.players[player].status = TIE;
-                    room.numberOfPlayers = 0;
-                    room['gameOver'] = true;
                 });
-                console.log("0", room.players)
+                room.numberOfPlayers = 0;
+                room['gameOver'] = true;
                 break;
             case 1:
                 room.players[leftPlayers[0]].status = WINNER;
                 room['gameOver'] = true;
-                console.log("1", room.players)
                 break;
             default:
                 room.numberOfPlayers = leftPlayers.length;
@@ -248,6 +247,24 @@ class Game {
         let player = room.players[name];
         let flameRadius = player.flame;
         room["map"].changeMapAfterExplosion(x, y, flameRadius);
+        if (!room["map"].hasBoxes()) {
+            if (!room.gameOverTimer) {
+                room.gameOverTimer = this.#runTimer(room);
+            }
+            if (room.gameOver) {
+                clearInterval(room.gameOverTimer);
+            }
+
+        }
+    }
+
+    #runTimer(room) {
+        return setTimeout(() => {
+            Object.keys(room.players).forEach((player) => {
+                room.players[player].status = TIE;
+            });
+            room.gameOver = true;
+        }, GAME_OVER_TIMER);
     }
 
     checkForPowerUps(name, roomId) {
@@ -392,7 +409,6 @@ export const
         })
 
         function animate(obj) {
-            console.log("animate", obj);
             if (obj.server.size > 0) {
                 ws.broadcast(obj);
 
@@ -419,10 +435,14 @@ export const
                 if (!roomId) return
                 const g = game.server.get(roomId);
                 if (!g) return;
+                if(g['timer']) {
+                    console.log("Timer:", g['timer'].getTimer());
+                }
                 client.send(JSON.stringify({
                     ...g,
                     map: g['map'].template,
-                    timer: g['timer'] ? g['timer'].getTimer() : null
+                    timer: g['timer'] ? g['timer'].getTimer() : null,
+                    gameOverTimer: g['gameOverTimer'] = null,
                 }), {binary: false});
             });
         };

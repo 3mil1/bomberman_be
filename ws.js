@@ -281,7 +281,6 @@ class Game {
         return this.server.get(roomId).started = true;
     }
 
-    //Messages
     addMessage(name, text, roomId) {
         return this.server.get(roomId).chat.push(
             {"author": name, "text": text, "id": Date.now()}
@@ -358,13 +357,15 @@ export const
                     const {name, roomId} = matchPlayerIDWithRoomId[playerID]
                     delete matchPlayerIDWithRoomId[playerID]
 
-                    game.server.get(roomId)["numberOfPlayers"] -= 1
+                    game.server.get(roomId).numberOfPlayers -= 1
                     delete game.server.get(roomId).players[name]
 
                     if (game.server.get(roomId).numberOfPlayers === 0) {
                         delete game.server.delete(roomId)
                     }
 
+                    // console.log("GAME SERVER:")
+                    // console.log(game.server)
                     return
                 }
                 default:
@@ -391,6 +392,7 @@ export const
                 }
                 if (method === SET_PLAYER) {
                     const {roomId, name, error} = fromCmd
+                    console.log(roomId, name, error)
                     const returnObj = error ?{error: error} : {roomId, name}
 
                     connection.send(JSON.stringify(returnObj), {binary: false});
@@ -449,10 +451,8 @@ export const
             console.log("Here")
         })
         animate(game);
-
         console.log(`API on port ${port}`);
     };
-
 
 function uuidv4() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {

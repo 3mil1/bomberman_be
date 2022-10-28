@@ -353,14 +353,19 @@ export const
                     return game.addMessage(name, args, roomId);
                 }
                 case CLOSE_CONNECTION: {
+                    // console.log("close connection 1")
                     if (!matchPlayerIDWithRoomId[playerID]) return
                     const {name, roomId} = matchPlayerIDWithRoomId[playerID]
+                    console.log(game.server.get(roomId))
+
                     delete matchPlayerIDWithRoomId[playerID]
 
                     game.server.get(roomId).numberOfPlayers -= 1
                     delete game.server.get(roomId).players[name]
+                    if(game.server.get(roomId).numberOfPlayers === 1) game.server.get(roomId).gameOver = true;
 
                     if (game.server.get(roomId).numberOfPlayers === 0) {
+                        console.log("close connection 2")
                         delete game.server.delete(roomId)
                     }
 

@@ -17,6 +17,6 @@ export const TIE = 'tie';
 //timer
 export const WAITING_TIMER = 5;//for test
 export const COUNTDOWN_TIMER = 3;//for test
-export const GAME_OVER_TIMER = 30000;
+export const GAME_OVER_TIMER = 30;//for test
 
 export const ALPHA_REGEX = /^[a-zA-Z\s]+$/;

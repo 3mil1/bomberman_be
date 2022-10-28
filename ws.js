@@ -155,7 +155,7 @@ class Game {
         }
         const room = this.server.get(roomId);
         if (!room) return {roomId, name, error: "room does not exist"}
-        if (room.players[name]) return {roomId, name, error: "player with this name is already exist"}
+        if (room.players[name]) return {roomId, name, error: "player with this name already exists"}
 
         const t = room.timer ? room.timer.getCountdown() : null;
         if (room.numberOfPlayers === 4 || room.started || t) return {roomId, name, error: "the game has already started"};

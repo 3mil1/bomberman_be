@@ -32,7 +32,6 @@ Array.prototype.remove = function () {
 
 const matchPlayerIDWithRoomId = {}
 const playerMoving = [];
-// let stop = false
 
 const trackBombs = () => {
     return {
@@ -63,7 +62,6 @@ class Player {
         this.position = {x, y};
         this.speed = 1;
         this.health = 3;
-        // this.power = new Set();
         this.bombCount = 1;
         this.direction = DIRECTION.DOWN;
         this.flame = 1;
@@ -156,10 +154,11 @@ class Game {
             roomId = this.#setRoom()
         }
         const room = this.server.get(roomId);
-        if (!room) return {roomId: "room does not exist", name}
+        if (!room) return {roomId, name, error: "room does not exist"}
+        if (room.players[name]) return {roomId, name, error: "player with this name is already exist"}
 
         const t = room.timer ? room.timer.getCountdown() : null;
-        if (room.numberOfPlayers === 4 || room.started || t) return {roomId: "the game already started", name};
+        if (room.numberOfPlayers === 4 || room.started || t) return {roomId, name, error: "the game has already started"};
 
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
@@ -167,7 +166,7 @@ class Game {
         if (room.numberOfPlayers > 1) {
             this.#setTimer(room, roomId);
         }
-        return {roomId, name}
+        return {roomId, name, error: null}
     }
 
     #setTimer(room, roomId) {
@@ -301,7 +300,7 @@ export const
         const commands = (method, args, playerID) => {
             switch (method) {
                 case SET_POSITION : {
-                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
+                    const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     const {move, direction} = args
                     const player = game.server.get(roomId).players[name]
 
@@ -319,9 +318,9 @@ export const
                 }
 
                 case SET_PLAYER : {
-                    const {roomId, name} = game.setPlayer(args)
+                    const {roomId, name, error} = game.setPlayer(args)
                     matchPlayerIDWithRoomId[playerID] = {roomId, name}
-                    return {roomId, name}
+                    return {roomId, name, error}
                 }
 
                 case GET_ROOMS : {
@@ -341,7 +340,7 @@ export const
                 }
 
                 case SET_BOMB: {
-                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
+                    const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     const {x, y, timer} = game.setBomb(name, roomId)
                     if (timer > 0) startTrackingBomb.placeBomb(x, y, timer, roomId, name);
                     return {x, y}
@@ -351,25 +350,21 @@ export const
                     return game.startGame(roomId)
                 }
                 case NEW_MESSAGE : {
-                    const {roomId, name} = matchPlayerIDWithRoomId[playerID]
+                    const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     return game.addMessage(name, args, roomId);
                 }
                 case CLOSE_CONNECTION: {
                     if (!matchPlayerIDWithRoomId[playerID]) return
-                    const {roomId} = matchPlayerIDWithRoomId[playerID]
+                    const {name, roomId} = matchPlayerIDWithRoomId[playerID]
                     delete matchPlayerIDWithRoomId[playerID]
 
                     game.server.get(roomId)["numberOfPlayers"] -= 1
+                    delete game.server.get(roomId).players[name]
 
                     if (game.server.get(roomId).numberOfPlayers === 0) {
                         delete game.server.delete(roomId)
                     }
 
-                    // console.log("GAME SERVER:")
-                    // console.log(game.server)
-                    // console.log()
-                    // console.log()
-                    // console.log()
                     return
                 }
                 default:
@@ -395,12 +390,10 @@ export const
                     connection.send(JSON.stringify({games: fromCmd}));
                 }
                 if (method === SET_PLAYER) {
-                    const {roomId, name} = fromCmd
-                    if (roomId.match(ALPHA_REGEX)) {
-                        connection.send(JSON.stringify({error: `${roomId}`}));
-                    } else {
-                        connection.send(JSON.stringify({roomId, name}), {binary: false});
-                    }
+                    const {roomId, name, error} = fromCmd
+                    const returnObj = error ?{error: error} : {roomId, name}
+
+                    connection.send(JSON.stringify(returnObj), {binary: false});
                 }
 
                 // const {roomId} = args

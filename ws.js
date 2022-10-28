@@ -393,7 +393,7 @@ export const
                 if (method === SET_PLAYER) {
                     const {roomId, name, error} = fromCmd
                     console.log(roomId, name, error)
-                    const returnObj = error ?{error: error} : {roomId, name}
+                    const returnObj = error ? {error: error} : {roomId, name}
 
                     connection.send(JSON.stringify(returnObj), {binary: false});
                 }

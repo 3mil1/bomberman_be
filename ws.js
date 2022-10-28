@@ -149,7 +149,6 @@ class Game {
         this.server.get(roomId)["players"] = {};
         this.server.get(roomId)["gameOver"] = false;
         this.server.get(roomId)["timer"] = null;
-        // this.server.get(roomId)["gameOverTimer"] = null;
         return roomId
     }
 
@@ -176,7 +175,7 @@ class Game {
         if (!room.timer) {
             room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
                 this.startGame(roomId);
-            }, () => this.endGame(roomId));
+            }, GAME_OVER_TIMER, () => this.endGame(roomId));
         }
         if (room.numberOfPlayers === 4) {
             room.timer.startCountdownTimer();
@@ -189,6 +188,7 @@ class Game {
             room.players[player].status = TIE;
         });
         room.gameOver = true;
+        console.log("Room:", room);
     }
 
     setBomb(name, roomId) {
@@ -257,23 +257,13 @@ class Game {
         let flameRadius = player.flame;
         room["map"].changeMapAfterExplosion(x, y, flameRadius);
         if (!room["map"].hasBoxes()) {
-            if (!room.gameOverTimer) {
-                room.gameOverTimer = this.#runTimer(room);
+            if(!room.timer.gameOverID) {
+                room.timer.startGameOverTimer();
             }
             if (room.gameOver) {
-                clearInterval(room.gameOverTimer);
+                room.timer.deleteGameOverTimer();
             }
-
         }
-    }
-
-    #runTimer(room) {
-        return setTimeout(() => {
-            Object.keys(room.players).forEach((player) => {
-                room.players[player].status = TIE;
-            });
-            room.gameOver = true;
-        }, GAME_OVER_TIMER);
     }
 
     checkForPowerUps(name, roomId) {
@@ -444,14 +434,12 @@ export const
                 if (!roomId) return
                 const g = game.server.get(roomId);
                 if (!g) return;
-                // if(g['timer']) {
-                //     console.log("Timer:", g['timer'].getTimer());
-                // }
+
                 client.send(JSON.stringify({
                     ...g,
                     map: g['map'].template,
                     timer: g['timer'] ? g['timer'].getTimer() : null,
-                    gameOverTimer: g['gameOverTimer'] = null,
+                    gameOverTimer: g['timer'] ? g['timer'].getGameOverTimer() : null,
                 }), {binary: false});
             });
         };

@@ -33,12 +33,12 @@ export class Timer {
         }, 1000);
     }
 
-    startGameOver() {
-        this.gameOverID = setTimeout(() => {
+    startGameOverTimer() {
+        this.gameOverID = setInterval(() => {
             this.gameOver--;
-            if (this.gameOver <=0) {
-                this.deleteGameOver();
-                this.end;
+            if (this.gameOver <= 0) {
+                this.deleteGameOverTimer();
+                this.end();
             }
         }, 1000)
     }
@@ -57,9 +57,9 @@ export class Timer {
         }
     }
 
-    deleteGameOver() {
+    deleteGameOverTimer() {
         if (this.gameOverID) {
-            clearInterval(this.gameOver);
+            clearInterval(this.gameOverID);
             this.gameOverID = null;
         }
     }
@@ -82,6 +82,7 @@ export class Timer {
         }
         return null;
     }
+
     getCountdown() {
         return !!this.countdownID;
     }

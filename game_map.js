@@ -115,6 +115,13 @@ export class GameMap {
         this.template[y][x] = types.blank;
     }
 
+    hasBoxes() {
+        const box = this.template.flatMap((col) => {
+            return col.includes(types.destroyableWall);
+        });
+        return box.some((b) => b);
+    }
+
 }
 
 

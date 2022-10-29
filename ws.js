@@ -70,6 +70,7 @@ class Player {
         this.status = ACTIVE;
         this.kills = 0;
         this.takenLives = 0;
+        this.hurt = false;
     }
 
     #speedUp() {
@@ -113,6 +114,11 @@ class Player {
         this.health -= 1;
         if (this.health === 0) {
             this.status = LOOSER;
+        } else {
+            this.hurt = true;
+            setTimeout(() => {
+                this.hurt = false;
+            }, 3000);
         }
     }
 
@@ -216,7 +222,7 @@ class Game {
         Object.keys(room.players).forEach((key) => {
             let player = room.players[key];
             const {x, y} = player.getCell();
-            if (room["map"].template[y][x] === types.detonatedBomb) {
+            if (room["map"].template[y][x] === types.detonatedBomb && !player.hurt) {
                 player.decreaseHealth();
                 if (key !== name) {
                     if (player.health === 0) {

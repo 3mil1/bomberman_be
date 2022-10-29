@@ -2,7 +2,6 @@ import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
     ACTIVE,
-    ALPHA_REGEX,
     CLOSE_CONNECTION,
     COUNTDOWN_TIMER,
     GAME_OVER_TIMER,
@@ -353,7 +352,6 @@ export const
                     return game.addMessage(name, args, roomId);
                 }
                 case CLOSE_CONNECTION: {
-                    // console.log("close connection 1")
                     if (!matchPlayerIDWithRoomId[playerID]) return
                     const {name, roomId} = matchPlayerIDWithRoomId[playerID]
                     console.log(game.server.get(roomId))

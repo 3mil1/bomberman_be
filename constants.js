@@ -7,6 +7,7 @@ export const GET_ROOMS = 'getRooms';
 // export const DECREASE_HEALTH = 'decreaseHealth';
 export const SET_POSITION = 'setPosition';
 export const NEW_MESSAGE = 'newMessage'
+export const DELETE_ROOM = 'deleteRoom'
 
 //player status
 export const ACTIVE = 'active';

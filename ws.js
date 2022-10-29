@@ -4,7 +4,7 @@ import {
     ACTIVE,
     ALPHA_REGEX,
     CLOSE_CONNECTION,
-    COUNTDOWN_TIMER, GAME_OVER_TIMER,
+    COUNTDOWN_TIMER, DELETE_ROOM, GAME_OVER_TIMER,
     GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
@@ -158,7 +158,11 @@ class Game {
         if (room.players[name]) return {roomId, name, error: "player with this name already exists"}
 
         const t = room.timer ? room.timer.getCountdown() : null;
-        if (room.numberOfPlayers === 4 || room.started || t) return {roomId, name, error: "the game has already started"};
+        if (room.numberOfPlayers === 4 || room.started || t) return {
+            roomId,
+            name,
+            error: "the game has already started"
+        };
 
         room["map"].addPowerUps();
         room["numberOfPlayers"] += 1
@@ -298,6 +302,7 @@ export const
 
         const commands = (method, args, playerID) => {
             switch (method) {
+
                 case SET_POSITION : {
                     const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     const {move, direction} = args
@@ -344,14 +349,17 @@ export const
                     if (timer > 0) startTrackingBomb.placeBomb(x, y, timer, roomId, name);
                     return {x, y}
                 }
+
                 case START_GAME: {
                     const {roomId} = args
                     return game.startGame(roomId)
                 }
+
                 case NEW_MESSAGE : {
                     const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     return game.addMessage(name, args, roomId);
                 }
+
                 case CLOSE_CONNECTION: {
                     if (!matchPlayerIDWithRoomId[playerID]) return
                     const {name, roomId} = matchPlayerIDWithRoomId[playerID]
@@ -368,6 +376,14 @@ export const
                     // console.log(game.server)
                     return
                 }
+
+                case DELETE_ROOM: {
+                    const {roomId} = matchPlayerIDWithRoomId[playerID]
+                    game.server.get(roomId).numberOfPlayers -= 1
+                    if (game.server.get(roomId).numberOfPlayers === 0) delete game.server.delete(roomId)
+                    return
+                }
+
                 default:
                     return undefined;
             }
@@ -393,7 +409,7 @@ export const
                 if (method === SET_PLAYER) {
                     const {roomId, name, error} = fromCmd
                     console.log(roomId, name, error)
-                    const returnObj = error ?{error: error} : {roomId, name}
+                    const returnObj = error ? {error: error} : {roomId, name}
 
                     connection.send(JSON.stringify(returnObj), {binary: false});
                 }

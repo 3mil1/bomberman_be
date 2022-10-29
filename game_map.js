@@ -63,15 +63,15 @@ export class GameMap {
                 this.template[y][x + i] = stopRight ? this.template[y][x + i] : types.detonatedBomb;
             }
             if (x - i > 0) {
-                stopLeft = stopLeft || this.template[y][x - i] === types.wall  || this.template[y][x + i] === types.bomb;
+                stopLeft = stopLeft || this.template[y][x - i] === types.wall  || this.template[y][x - i] === types.bomb;
                 this.template[y][x - i] = stopLeft ? this.template[y][x - i] : types.detonatedBomb;
             }
             if (y + i < this.numRows) {
-                stopUp = stopUp || this.template[y + i][x] === types.wall  || this.template[y][x + i] === types.bomb;
+                stopUp = stopUp || this.template[y + i][x] === types.wall  || this.template[y + i][x] === types.bomb;
                 this.template[y + i][x] = stopUp ? this.template[y + i][x] : types.detonatedBomb;
             }
             if (y - 1 > 0) {
-                stopDown = stopDown || this.template[y - i][x] === types.wall  || this.template[y][x + i] === types.bomb;
+                stopDown = stopDown || this.template[y - i][x] === types.wall  || this.template[y - i][x] === types.bomb;
                 this.template[y - i][x] = stopDown ? this.template[y - i][x] : types.detonatedBomb;
             }
         }
@@ -91,7 +91,7 @@ export class GameMap {
 
     #switchType(x, y) {
         switch (this.template[y][x]) {
-            case types.destroyableWall:
+            // case types.destroyableWall:
             case types.emptyCell:
                 return types.blank;
             case types.detonatedBomb:
@@ -99,7 +99,7 @@ export class GameMap {
                 let key = `${y}:${x}`;
                 if (this.powerUps[key]) {
                     type = this.powerUps[key];
-                    this.powerUps[key] = null;//надо чтоб не поставить два раза
+                    this.powerUps[key] = null;
                 }
                return type;
             default:

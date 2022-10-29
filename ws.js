@@ -2,9 +2,10 @@ import {WebSocketServer} from "ws";
 import {GameMap, playerPositions, template, types} from "./game_map.js";
 import {
     ACTIVE,
-    ALPHA_REGEX,
     CLOSE_CONNECTION,
-    COUNTDOWN_TIMER, DELETE_ROOM, GAME_OVER_TIMER,
+    COUNTDOWN_TIMER,
+    DELETE_ROOM,
+    GAME_OVER_TIMER,
     GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
@@ -70,6 +71,7 @@ class Player {
         this.status = ACTIVE;
         this.kills = 0;
         this.takenLives = 0;
+        this.hurt = false;
     }
 
     #speedUp() {
@@ -113,6 +115,11 @@ class Player {
         this.health -= 1;
         if (this.health === 0) {
             this.status = LOOSER;
+        } else {
+            this.hurt = true;
+            setTimeout(() => {
+                this.hurt = false;
+            }, 3000);
         }
     }
 
@@ -177,11 +184,20 @@ class Game {
         if (!room.timer) {
             room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
                 this.startGame(roomId);
-            });
+            }, GAME_OVER_TIMER, () => this.endGame(roomId));
         }
         if (room.numberOfPlayers === 4) {
             room.timer.startCountdownTimer();
         }
+    }
+
+    endGame(roomId) {
+        const room = this.server.get(roomId);
+        Object.keys(room.players).forEach((player) => {
+            room.players[player].status = TIE;
+        });
+        room.gameOver = true;
+        console.log("Room:", room);
     }
 
     setBomb(name, roomId) {
@@ -211,7 +227,7 @@ class Game {
         Object.keys(room.players).forEach((key) => {
             let player = room.players[key];
             const {x, y} = player.getCell();
-            if (room["map"].template[y][x] === types.detonatedBomb) {
+            if (room["map"].template[y][x] === types.detonatedBomb && !player.hurt) {
                 player.decreaseHealth();
                 if (key !== name) {
                     if (player.health === 0) {
@@ -250,23 +266,13 @@ class Game {
         let flameRadius = player.flame;
         room["map"].changeMapAfterExplosion(x, y, flameRadius);
         if (!room["map"].hasBoxes()) {
-            if (!room.gameOverTimer) {
-                room.gameOverTimer = this.#runTimer(room);
+            if (!room.timer.gameOverID) {
+                room.timer.startGameOverTimer();
             }
             if (room.gameOver) {
-                clearInterval(room.gameOverTimer);
+                room.timer.deleteGameOverTimer();
             }
-
         }
-    }
-
-    #runTimer(room) {
-        return setTimeout(() => {
-            Object.keys(room.players).forEach((player) => {
-                room.players[player].status = TIE;
-            });
-            room.gameOver = true;
-        }, GAME_OVER_TIMER);
     }
 
     checkForPowerUps(name, roomId) {
@@ -302,7 +308,6 @@ export const
 
         const commands = (method, args, playerID) => {
             switch (method) {
-
                 case SET_POSITION : {
                     const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     const {move, direction} = args
@@ -363,12 +368,16 @@ export const
                 case CLOSE_CONNECTION: {
                     if (!matchPlayerIDWithRoomId[playerID]) return
                     const {name, roomId} = matchPlayerIDWithRoomId[playerID]
+                    // console.log(game.server.get(roomId))
+
                     delete matchPlayerIDWithRoomId[playerID]
 
                     game.server.get(roomId).numberOfPlayers -= 1
                     delete game.server.get(roomId).players[name]
+                    if (game.server.get(roomId).numberOfPlayers === 1) game.server.get(roomId).gameOver = true;
 
                     if (game.server.get(roomId).numberOfPlayers === 0) {
+                        // console.log("close connection 2")
                         delete game.server.delete(roomId)
                     }
 
@@ -451,14 +460,12 @@ export const
                 if (!roomId) return
                 const g = game.server.get(roomId);
                 if (!g) return;
-                // if(g['timer']) {
-                //     console.log("Timer:", g['timer'].getTimer());
-                // }
+
                 client.send(JSON.stringify({
                     ...g,
                     map: g['map'].template,
                     timer: g['timer'] ? g['timer'].getTimer() : null,
-                    gameOverTimer: g['gameOverTimer'] = null,
+                    gameOverTimer: g['timer'] ? g['timer'].getGameOverTimer() : null,
                 }), {binary: false});
             });
         };

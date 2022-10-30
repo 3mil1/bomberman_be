@@ -185,6 +185,8 @@ class Game {
             room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
                 this.startGame(roomId);
             }, GAME_OVER_TIMER, () => this.endGame(roomId));
+
+            // room.timer.startWaitingTimer();
         }
         if (room.numberOfPlayers === 4) {
             room.timer.startCountdownTimer();
@@ -197,7 +199,6 @@ class Game {
             room.players[player].status = TIE;
         });
         room.gameOver = true;
-        console.log("Room:", room);
     }
 
     setBomb(name, roomId) {
@@ -372,13 +373,17 @@ export const
 
                     delete matchPlayerIDWithRoomId[playerID]
                     const room = game.server.get(roomId);
-                    if (!room.started) return;
+                    if (!room.started && !room.timer) return;
 
                     room.numberOfPlayers -= 1
-
                     delete room.players[name]
+
+                    if (room.numberOfPlayers === 1 && !room.started) {
+                        room.timer.deleteWaiting();
+                        room.timer.deleteCountdown();
+                        room.timer = null;
+                    }
                     if (room.numberOfPlayers === 1 && room.started ) room.gameOver = true;
-                    // console.log("one left", game.server.get(roomId).gameOver);
 
                     if (room.numberOfPlayers === 0) {
                         // console.log("close connection 2")

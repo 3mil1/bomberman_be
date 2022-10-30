@@ -371,12 +371,16 @@ export const
                     // console.log(game.server.get(roomId))
 
                     delete matchPlayerIDWithRoomId[playerID]
+                    const room = game.server.get(roomId);
+                    if (!room.started) return;
 
-                    game.server.get(roomId).numberOfPlayers -= 1
-                    delete game.server.get(roomId).players[name]
-                    if (game.server.get(roomId).numberOfPlayers === 1) game.server.get(roomId).gameOver = true;
+                    room.numberOfPlayers -= 1
 
-                    if (game.server.get(roomId).numberOfPlayers === 0) {
+                    delete room.players[name]
+                    if (room.numberOfPlayers === 1 && room.started ) room.gameOver = true;
+                    // console.log("one left", game.server.get(roomId).gameOver);
+
+                    if (room.numberOfPlayers === 0) {
                         // console.log("close connection 2")
                         delete game.server.delete(roomId)
                     }
@@ -388,8 +392,11 @@ export const
 
                 case DELETE_ROOM: {
                     const {roomId} = matchPlayerIDWithRoomId[playerID]
-                    game.server.get(roomId).numberOfPlayers -= 1
-                    if (game.server.get(roomId).numberOfPlayers === 0) delete game.server.delete(roomId)
+                    if (!roomId) return;
+                    // game.server.get(roomId).numberOfPlayers -= 1
+                    // if (game.server.get(roomId).numberOfPlayers === 0) delete game.server.delete(roomId)
+                    delete game.server.delete(roomId)
+                    console.log("1", game);
                     return
                 }
 
@@ -435,6 +442,7 @@ export const
 
         function animate(obj) {
             if (obj.server.size > 0) {
+                // console.log("OBJ", obj);
                 ws.broadcast(obj);
 
                 playerMoving.forEach(id => {

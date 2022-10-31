@@ -216,8 +216,8 @@ class Game {
     detonateBomb(x, y, roomId, name) {
         const room = this.server.get(roomId);
         let player = room.players[name];
-        player.bombCount++;
-        let flameRadius = player.flame;
+        if (player) player.bombCount++;
+        const flameRadius = player ? player.flame : 1;
 
         room["map"].explosion(x, y, flameRadius);
 
@@ -264,7 +264,7 @@ class Game {
     changeMap(x, y, roomId, name) {
         const room = this.server.get(roomId);
         let player = room.players[name];
-        let flameRadius = player.flame;
+        const flameRadius = player ? player.flame : 1;
         room["map"].changeMapAfterExplosion(x, y, flameRadius);
         if (!room["map"].hasBoxes()) {
             if (!room.timer.gameOverID) {

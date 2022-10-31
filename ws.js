@@ -375,32 +375,34 @@ export const
                     delete matchPlayerIDWithRoomId[playerID]
                     const room = game.server.get(roomId);
 
-                    room.numberOfPlayers -= 1
-                    delete room.players[name]
+                    if (room) {
+                        room.numberOfPlayers -= 1
 
-                    if (!room.started) {
-                        if(room.numberOfPlayers === 1) {
-                            room.timer.deleteWaiting();
-                            room.timer.deleteCountdown();
-                            room.timer = null;
+                        delete room.players[name]
+
+                        if (!room.started) {
+                            if (room.numberOfPlayers === 1) {
+                                room.timer.deleteWaiting();
+                                room.timer.deleteCountdown();
+                                room.timer = null;
+                            }
+                            let n = room.numberOfPlayers;
+                            Object.keys(room.players).forEach((name) => {
+                                room.players[name].position = playerPositions[n];
+                                n--;
+                            })
                         }
-                        let n = room.numberOfPlayers;
-                        Object.keys(room.players).forEach((name) => {
-                            room.players[name].position = playerPositions[n];
-                            n--;
-                        })
-                    }
-                    if (room.numberOfPlayers === 1 && room.started ) {
-                        room.gameOver = true;
-                        Object.keys(room.players).forEach((name) => {
-                            room.players[name].status = WINNER;
-                        });
-                    }
+                        if (room.numberOfPlayers === 1 && room.started) {
+                            room.gameOver = true;
+                            Object.keys(room.players).forEach((name) => {
+                                room.players[name].status = WINNER;
+                            });
+                        }
 
-                    if (room.numberOfPlayers === 0) {
-                        delete game.server.delete(roomId)
+                        if (room.numberOfPlayers === 0) {
+                            delete game.server.delete(roomId)
+                        }
                     }
-
                     // console.log("GAME SERVER:")
                     // console.log(game.server)
                     return

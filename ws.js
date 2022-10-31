@@ -312,8 +312,8 @@ export const
                 case SET_POSITION : {
                     const {roomId, name, error} = matchPlayerIDWithRoomId[playerID]
                     const {move, direction} = args
+                    if(!game.server.get(roomId)) return;
                     const player = game.server.get(roomId).players[name]
-
                     if (move) {
                         player.moving = true;
                         if (!playerMoving.includes(playerID)) playerMoving.push(playerID)

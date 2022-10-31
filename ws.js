@@ -185,8 +185,6 @@ class Game {
             room.timer = new Timer(WAITING_TIMER, COUNTDOWN_TIMER, () => {
                 this.startGame(roomId);
             }, GAME_OVER_TIMER, () => this.endGame(roomId));
-
-            // room.timer.startWaitingTimer();
         }
         if (room.numberOfPlayers === 4) {
             room.timer.startCountdownTimer();
@@ -370,7 +368,6 @@ export const
                     if (!matchPlayerIDWithRoomId[playerID]) return
 
                     const {name, roomId} = matchPlayerIDWithRoomId[playerID]
-                    // console.log(game.server.get(roomId))
 
                     delete matchPlayerIDWithRoomId[playerID]
                     const room = game.server.get(roomId);
@@ -403,18 +400,13 @@ export const
                             delete game.server.delete(roomId)
                         }
                     }
-                    // console.log("GAME SERVER:")
-                    // console.log(game.server)
                     return
                 }
 
                 case DELETE_ROOM: {
                     const {roomId} = matchPlayerIDWithRoomId[playerID]
                     if (!roomId) return;
-                    // game.server.get(roomId).numberOfPlayers -= 1
-                    // if (game.server.get(roomId).numberOfPlayers === 0) delete game.server.delete(roomId)
                     delete game.server.delete(roomId)
-                    console.log("1", game);
                     return
                 }
 
@@ -424,10 +416,6 @@ export const
         }
 
         ws.on('connection', (connection, req) => {
-
-            // client.send(JSON.stringify({...obj[roomId], chat: obj[roomId].chat}), {binary: false});
-
-            // const playerIP = req.socket.remoteAddress;
             const playerID = req.url.split('=')[1];
             connection.playerID = playerID;
 
@@ -437,7 +425,6 @@ export const
 
                 const fromCmd = commands(method, args, playerID)
                 if (method === GET_ROOMS) {
-                    // console.log("2", JSON.stringify({games: fromCmd}));
                     connection.send(JSON.stringify({games: fromCmd}));
                 }
                 if (method === SET_PLAYER) {
@@ -447,20 +434,11 @@ export const
 
                     connection.send(JSON.stringify(returnObj), {binary: false});
                 }
-
-                // const {roomId} = args
-                // if (roomId) {
-                //     const gameClass = game.server
-                //     const gameObj = Object.fromEntries(gameClass);
-                //     if (!gameObj[roomId].gameOver && gameObj[roomId].started) animate(gameObj, playerID, connection);
-                //     //add case for game over
-                // }
             });
         })
 
         function animate(obj) {
             if (obj.server.size > 0) {
-                // console.log("OBJ", obj);
                 ws.broadcast(obj);
 
                 playerMoving.forEach(id => {

@@ -91,7 +91,6 @@ export class GameMap {
 
     #switchType(x, y) {
         switch (this.template[y][x]) {
-            // case types.destroyableWall:
             case types.emptyCell:
                 return types.blank;
             case types.detonatedBomb:

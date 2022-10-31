@@ -378,14 +378,23 @@ export const
                     room.numberOfPlayers -= 1
                     delete room.players[name]
 
-                    if (room.numberOfPlayers === 1 && !room.started) {
-                        room.timer.deleteWaiting();
-                        room.timer.deleteCountdown();
-                        room.timer = null;
+                    if (!room.started) {
+                        if(room.numberOfPlayers === 1) {
+                            room.timer.deleteWaiting();
+                            room.timer.deleteCountdown();
+                            room.timer = null;
+                        }
+                        let n = room.numberOfPlayers;
+                        Object.keys(room.players).forEach((name) => {
+                            room.players[name].position = playerPositions[n];
+                            n--;
+                        })
                     }
                     if (room.numberOfPlayers === 1 && room.started ) {
                         room.gameOver = true;
-                        room.players[name].status = WINNER;
+                        Object.keys(room.players).forEach((name) => {
+                            room.players[name].status = WINNER;
+                        });
                     }
 
                     if (room.numberOfPlayers === 0) {

@@ -329,7 +329,7 @@ export const
 
                 case SET_PLAYER : {
                     const {roomId, name, error} = game.setPlayer(args)
-                    matchPlayerIDWithRoomId[playerID] = {roomId, name}
+                    if (!error) matchPlayerIDWithRoomId[playerID] = {roomId, name}
                     return {roomId, name, error}
                 }
 
@@ -368,12 +368,12 @@ export const
 
                 case CLOSE_CONNECTION: {
                     if (!matchPlayerIDWithRoomId[playerID]) return
+
                     const {name, roomId} = matchPlayerIDWithRoomId[playerID]
                     // console.log(game.server.get(roomId))
 
                     delete matchPlayerIDWithRoomId[playerID]
                     const room = game.server.get(roomId);
-                    if (!room.started && !room.timer) return;
 
                     room.numberOfPlayers -= 1
                     delete room.players[name]
@@ -383,10 +383,12 @@ export const
                         room.timer.deleteCountdown();
                         room.timer = null;
                     }
-                    if (room.numberOfPlayers === 1 && room.started ) room.gameOver = true;
+                    if (room.numberOfPlayers === 1 && room.started ) {
+                        room.gameOver = true;
+                        room.players[name].status = WINNER;
+                    }
 
                     if (room.numberOfPlayers === 0) {
-                        // console.log("close connection 2")
                         delete game.server.delete(roomId)
                     }
 

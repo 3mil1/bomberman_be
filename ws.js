@@ -9,6 +9,7 @@ import {
     GET_ROOMS,
     LOOSER,
     NEW_MESSAGE,
+    REMOVE_PLAYER,
     SET_BOMB,
     SET_PLAYER,
     SET_POSITION,
@@ -31,7 +32,7 @@ Array.prototype.remove = function () {
     return this;
 };
 
-const matchPlayerIDWithRoomId = {}
+let matchPlayerIDWithRoomId = {}
 const playerMoving = [];
 
 const trackBombs = () => {
@@ -407,6 +408,23 @@ export const
                     const {roomId} = matchPlayerIDWithRoomId[playerID]
                     if (!roomId) return;
                     delete game.server.delete(roomId)
+                    return
+                }
+
+                case REMOVE_PLAYER: {
+                    if (!matchPlayerIDWithRoomId[playerID]) return;
+                    const { name, roomId } = matchPlayerIDWithRoomId[playerID];
+                    const room = game.server.get(roomId);
+                    
+                    if (room) {
+                        room.numberOfPlayers -= 1
+                        delete room.players[name]
+                        if (room.numberOfPlayers === 0) {
+                            console.log("DELETING ROOM CUZ OF 0 PLAYERS");
+                            delete game.server.delete(roomId);
+                        }
+                    }
+                    delete matchPlayerIDWithRoomId[playerID];
                     return
                 }
 

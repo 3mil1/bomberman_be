@@ -7,6 +7,7 @@ export const GET_ROOMS = 'getRooms';
 export const SET_POSITION = 'setPosition';
 export const NEW_MESSAGE = 'newMessage'
 export const DELETE_ROOM = 'deleteRoom'
+export const REMOVE_PLAYER = 'removePlayer';
 
 //player status
 export const ACTIVE = 'active';
@@ -15,6 +16,6 @@ export const LOOSER = 'looser';
 export const TIE = 'tie';
 
 //timer
-export const WAITING_TIMER = 20;
-export const COUNTDOWN_TIMER = 10;
+export const WAITING_TIMER = 3;
+export const COUNTDOWN_TIMER = 1;
 export const GAME_OVER_TIMER = 30;
